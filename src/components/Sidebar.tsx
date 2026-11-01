@@ -46,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div>
             <div className="text-[17px] font-bold tracking-wide text-white leading-tight">
-              CREW CONNECT
+              CREW FORGE
             </div>
             <div className="text-[11px] font-medium text-[#8F9CAE] tracking-tight">
               AI-Powered Crew Assembly

@@ -1,4 +1,4 @@
-# CrewForge AI (Crew Connect)
+# Crew Forge
 
 > **AI-Powered Crew Assembly Platform** for events, productions, and festivals.
 
@@ -88,3 +88,4 @@ Visit `http://localhost:3000` to view the application.
 
 ## 📄 License
 MIT
+

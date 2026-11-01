@@ -193,7 +193,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
               {/* Action Buttons */}
               <div className="flex items-center gap-2.5 self-end lg:self-center">
                 <button
-                  onClick={() => alert(`Calling ${item.freelancerName}... Connected with CrewForge Dispatch.`)}
+                  onClick={() => alert(`Calling ${item.freelancerName}... Connected with Crew Forge Dispatch.`)}
                   className="p-2.5 rounded-xl border border-[#DFE5F2] hover:bg-[#F0EEFF] hover:border-[#563CF0] text-[#563CF0] transition-colors"
                   title="Direct Phone Call"
                 >
