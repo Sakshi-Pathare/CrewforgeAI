@@ -14,7 +14,10 @@ import {
   Edit3,
   AlertTriangle,
   CheckCircle,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Zap,
+  SlidersHorizontal
 } from 'lucide-react';
 import { EventData, Freelancer, PageType } from '../types';
 import { getAiRecommendations, approveTeam } from '../services/api';
@@ -26,6 +29,7 @@ interface AiRecommendationsPageProps {
   onViewProfile: (freelancer: Freelancer) => void;
   onSelectFreelancer: (freelancer: Freelancer) => void;
   selectedIds: string[];
+  onShowToast?: (title: string, message?: string, type?: 'success' | 'info' | 'warning') => void;
 }
 
 export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
@@ -35,14 +39,18 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
   onViewProfile,
   onSelectFreelancer,
   selectedIds,
+  onShowToast,
 }) => {
   const [favorites, setFavorites] = useState<{ [id: string]: boolean }>({});
   const [sortBy, setSortBy] = useState('Match Score');
+  const [activeRoleFilter, setActiveRoleFilter] = useState('All');
   const [loading, setLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanStep, setScanStep] = useState(0);
   const [teamData, setTeamData] = useState<any>(null);
   const [approvalNotice, setApprovalNotice] = useState<string | null>(null);
 
-  // Fetch AI & Rule-based recommendations whenever eventData changes
+  // Fetch AI & Rule-based recommendations
   useEffect(() => {
     let isMounted = true;
     const fetchRecommendations = async () => {
@@ -63,9 +71,33 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
     return () => { isMounted = false; };
   }, [eventData]);
 
+  // Simulated AI Engine Re-Scan
+  const handleTriggerRescan = () => {
+    setIsScanning(true);
+    setScanStep(1);
+
+    setTimeout(() => setScanStep(2), 350);
+    setTimeout(() => setScanStep(3), 700);
+    setTimeout(() => {
+      setIsScanning(false);
+      setScanStep(0);
+      onShowToast?.(
+        'AI Re-Matching Complete',
+        'Evaluated 12 certified candidates across acoustic compatibility, location, and dates.',
+        'info'
+      );
+    }, 1100);
+  };
+
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
+    const isNowFav = !favorites[id];
+    setFavorites(prev => ({ ...prev, [id]: isNowFav }));
+    onShowToast?.(
+      isNowFav ? 'Saved to Favorites' : 'Removed from Favorites',
+      isNowFav ? 'Profile bookmarked for upcoming productions.' : undefined,
+      'info'
+    );
   };
 
   const handleApproveTeam = async () => {
@@ -73,28 +105,36 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
     setLoading(true);
     try {
       const res = await approveTeam(eventData.id, teamData.selectedTeam);
-      setApprovalNotice(res?.message || 'Crew team approved! Roster and call sheet have been confirmed.');
+      const msg = res?.message || 'Crew team approved! Roster and call sheet have been confirmed.';
+      setApprovalNotice(msg);
+      onShowToast?.('Roster Approved', msg, 'success');
       setTimeout(() => {
         setApprovalNotice(null);
         onNavigate('assignments');
-      }, 2000);
-    } catch (err) {
-      setApprovalNotice('Team approved and synced with production call sheet.');
+      }, 1500);
+    } catch {
+      const msg = 'Team approved and synced with production call sheet.';
+      setApprovalNotice(msg);
+      onShowToast?.('Roster Approved', msg, 'success');
       setTimeout(() => {
         setApprovalNotice(null);
         onNavigate('assignments');
-      }, 2000);
+      }, 1500);
     } finally {
       setLoading(false);
     }
   };
 
-  // Merge backend candidate scores with full freelancer profile list
+  // Merge candidate scores
   const candidatesList = (teamData?.selectedTeam && teamData.selectedTeam.length > 0)
     ? teamData.selectedTeam
     : freelancers;
 
-  const sortedRecommendations = [...candidatesList].sort((a: any, b: any) => {
+  const roleFilteredList = activeRoleFilter === 'All'
+    ? candidatesList
+    : candidatesList.filter((c: any) => (c.assignedRole || c.role) === activeRoleFilter);
+
+  const sortedRecommendations = [...roleFilteredList].sort((a: any, b: any) => {
     if (sortBy === 'Match Score') return (b.matchScore || 90) - (a.matchScore || 90);
     if (sortBy === 'Price: Low to High') return a.pricePerEvent - b.pricePerEvent;
     return b.rating - a.rating;
@@ -104,11 +144,14 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
   const committedBudget = teamData?.totalCommittedBudget || 17200;
   const remainingBudget = teamData?.budgetRemaining !== undefined ? teamData.budgetRemaining : (eventData.totalBudget - committedBudget);
 
+  // Unique roles for filter chips
+  const uniqueRoles = ['All', ...Array.from(new Set(candidatesList.map((c: any) => c.assignedRole || c.role))) as string[]];
+
   return (
-    <div className="max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-150">
+    <div className="max-w-[1360px] mx-auto pb-12 animate-fade-in-up">
       {/* Toast Alert Notice */}
       {approvalNotice && (
-        <div className="fixed top-20 right-8 z-50 bg-[#101D4B] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-[#563CF0] flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+        <div className="fixed top-20 right-8 z-50 bg-[#101D4B] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-[#563CF0] flex items-center gap-3 animate-fade-in-up">
           <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
           <span className="text-[13.5px] font-medium">{approvalNotice}</span>
         </div>
@@ -118,7 +161,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
       <div className="mb-3">
         <button
           onClick={() => onNavigate('create-event')}
-          className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#563CF0] hover:text-[#472FD6] transition-colors"
+          className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#563CF0] hover:text-[#472FD6] transition-colors btn-press"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Event</span>
@@ -136,40 +179,59 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
           </p>
         </div>
 
-        {/* Organizer Final Approval Authority Button */}
-        <button
-          onClick={handleApproveTeam}
-          disabled={loading}
-          className="px-6 py-3 rounded-xl bg-[#563CF0] hover:bg-[#472FD6] text-white text-[13.5px] font-bold shadow-btn flex items-center gap-2 transition-all shrink-0 self-start sm:self-auto"
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <CheckCircle className="w-4 h-4" />
-          )}
-          <span>Approve & Lock In Team</span>
-        </button>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          {/* Re-calculate Trigger */}
+          <button
+            onClick={handleTriggerRescan}
+            disabled={isScanning}
+            className="px-4 py-2.5 rounded-xl border border-[#563CF0] text-[#563CF0] hover:bg-[#F0EEFF] text-[13px] font-bold transition-all flex items-center gap-2 btn-press"
+            title="Re-run matching engine calculation"
+          >
+            <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
+            <span>{isScanning ? 'Evaluating...' : 'Recalculate Fit'}</span>
+          </button>
+
+          {/* Organizer Final Approval Authority Button */}
+          <button
+            onClick={handleApproveTeam}
+            disabled={loading || isScanning}
+            className="px-5 py-2.5 rounded-xl bg-[#563CF0] hover:bg-[#472FD6] text-white text-[13px] font-bold shadow-btn flex items-center gap-2 transition-all btn-press"
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            <span>Approve & Lock In Team</span>
+          </button>
+        </div>
       </div>
 
-      {/* Missing Roles Warning if any role couldn't be auto-matched */}
-      {teamData?.unfilledRoles && teamData.unfilledRoles.length > 0 && (
-        <div className="bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] rounded-2xl p-4 mb-6 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-[#D97706] shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-bold text-[14px]">Unfilled Positions Detected</h4>
-            <div className="text-[12.5px] mt-1 space-y-1">
-              {teamData.unfilledRoles.map((unfilled: any, idx: number) => (
-                <p key={idx}>
-                  • <span className="font-semibold">{unfilled.role}:</span> {unfilled.reason}
-                </p>
-              ))}
+      {/* Simulated AI Scanning Bar */}
+      {isScanning && (
+        <div className="bg-[#101D4B] text-white rounded-2xl p-5 mb-6 shadow-xl border border-[#563CF0] animate-fade-in-up">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-5 h-5 text-[#A5B4FB] animate-spin" />
+              <span className="font-bold text-[14px]">
+                {scanStep === 1 && "1/3: Analyzing acoustic & lighting requirements..."}
+                {scanStep === 2 && "2/3: Checking 24 Oct live availability in Pune radius..."}
+                {scanStep === 3 && "3/3: Optimizing within ₹25,000 budget constraint..."}
+              </span>
             </div>
+            <span className="text-[12px] text-[#A5B4FB] font-mono">AI ENGINE ACTIVE</span>
+          </div>
+          <div className="w-full bg-[#1E2E6B] h-2 rounded-full overflow-hidden">
+            <div 
+              className="h-2 bg-gradient-to-r from-[#563CF0] via-[#7545F5] to-[#10B981] transition-all duration-300 rounded-full"
+              style={{ width: `${scanStep === 1 ? '35%' : scanStep === 2 ? '70%' : '100%'}` }}
+            />
           </div>
         </div>
       )}
 
       {/* Top Event Summary Card */}
-      <div className="bg-white rounded-2xl border border-[#EAEFF8] p-5 shadow-card mb-7 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+      <div className="bg-white rounded-2xl border border-[#EAEFF8] p-5 shadow-card mb-7 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 crew-card-hover">
         {/* Left: Thumbnail & Name & Info */}
         <div className="flex items-center gap-4">
           <img
@@ -241,6 +303,26 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
         </div>
       </div>
 
+      {/* Role Filter Chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-3">
+        <span className="text-[12px] font-bold text-[#8A95A5] uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+          <SlidersHorizontal className="w-3.5 h-3.5" /> Filter by:
+        </span>
+        {uniqueRoles.map((role, i) => (
+          <button
+            key={i}
+            onClick={() => setActiveRoleFilter(role)}
+            className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-semibold shrink-0 transition-all btn-press ${
+              activeRoleFilter === role
+                ? 'bg-[#563CF0] text-white shadow-sm'
+                : 'bg-white border border-[#DFE5F2] text-[#5F6D82] hover:border-[#563CF0] hover:text-[#563CF0]'
+            }`}
+          >
+            {role}
+          </button>
+        ))}
+      </div>
+
       {/* Two-Column Section: Recommendations List + Match Score Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
         {/* Left Recommendations Stack (8 cols ~65%) */}
@@ -282,17 +364,20 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
               return (
                 <div
                   key={crewId}
-                  className="bg-white rounded-2xl border border-[#EAEFF8] p-5 shadow-card hover:shadow-card-hover transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
+                  className="bg-white rounded-2xl border border-[#EAEFF8] p-5 shadow-card hover:shadow-card-hover transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-5 crew-card-hover"
                 >
                   {/* Left: Avatar + Details */}
                   <div className="flex items-start gap-4 flex-1">
-                    <img
-                      src={crew.avatar}
-                      alt={crew.name}
-                      onClick={() => onViewProfile(crew)}
-                      className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-[#F2F5FD] shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
-                      title="Click to view full profile"
-                    />
+                    <div className="relative">
+                      <img
+                        src={crew.avatar}
+                        alt={crew.name}
+                        onClick={() => onViewProfile(crew)}
+                        className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-[#F2F5FD] shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                        title="Click to view full portfolio"
+                      />
+                      <span className="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-[#10B981] ring-2 ring-white" />
+                    </div>
                     <div>
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <h4 
@@ -303,7 +388,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                         </h4>
                         {isSelected && (
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#10B981] bg-[#E8F8F0] px-2 py-0.5 rounded-full">
-                            <CheckCircle2 className="w-3 h-3" /> Selected
+                            <CheckCircle2 className="w-3 h-3" /> Selected on Call Sheet
                           </span>
                         )}
                       </div>
@@ -330,8 +415,9 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
 
                       {/* Matching Explanation Snippet */}
                       {crew.explanation && (
-                        <p className="text-[12px] text-[#563CF0] bg-[#F0EEFF] px-2.5 py-1 rounded-lg mt-2 max-w-lg leading-relaxed">
-                          💡 <span className="font-semibold">Why Selected:</span> {crew.explanation}
+                        <p className="text-[12px] text-[#563CF0] bg-[#F0EEFF] px-2.5 py-1 rounded-lg mt-2 max-w-lg leading-relaxed flex items-center gap-1">
+                          <Zap className="w-3.5 h-3.5 shrink-0" />
+                          <span><strong className="font-semibold">AI Match Reason:</strong> {crew.explanation}</span>
                         </p>
                       )}
 
@@ -375,13 +461,13 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                   <div className="flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0">
                     <button
                       onClick={() => onViewProfile(crew)}
-                      className="px-5 py-2.5 rounded-xl bg-[#563CF0] hover:bg-[#472FD6] text-white text-[13px] font-semibold shadow-sm transition-all"
+                      className="px-5 py-2.5 rounded-xl bg-[#563CF0] hover:bg-[#472FD6] text-white text-[13px] font-semibold shadow-sm transition-all btn-press"
                     >
                       View Profile
                     </button>
                     <button
                       onClick={(e) => toggleFavorite(crewId, e)}
-                      className={`p-2.5 rounded-xl border transition-colors ${
+                      className={`p-2.5 rounded-xl border transition-colors btn-press ${
                         isFav
                           ? 'border-[#EF4444] text-[#EF4444] bg-[#FEE2E2]/30'
                           : 'border-[#DFE5F2] text-[#8A95A5] hover:text-[#563CF0] hover:border-[#563CF0]'
@@ -400,7 +486,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
         {/* Right Sidebar: AI Match Score & Explanation (4 cols ~35%) */}
         <div className="lg:col-span-4 space-y-5">
           {/* AI Match Score Gradient Panel with Dynamic Ring */}
-          <div className="rounded-2xl p-6 bg-gradient-to-br from-[#7545F5] to-[#563CF0] text-white shadow-lg shadow-indigo-950/20 relative overflow-hidden">
+          <div className="rounded-2xl p-6 bg-gradient-to-br from-[#7545F5] to-[#563CF0] text-white shadow-lg shadow-indigo-950/20 relative overflow-hidden animate-ai-glow">
             <div className="flex items-center gap-2.5 mb-2">
               <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-white" />
@@ -447,7 +533,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
           </div>
 
           {/* Explainable Evaluation Criteria Card */}
-          <div className="bg-white rounded-2xl border border-[#EAEFF8] p-6 shadow-card">
+          <div className="bg-white rounded-2xl border border-[#EAEFF8] p-6 shadow-card crew-card-hover">
             <h4 className="text-[15px] font-bold text-[#142653] mb-4">
               Configurable Scoring Weights
             </h4>
@@ -456,7 +542,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                 <span>1. Skill & Role Match</span>
                 <span className="font-bold text-[#563CF0]">30%</span>
               </div>
-              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full overflow-hidden">
                 <div className="bg-[#563CF0] h-1.5 rounded-full w-[30%]"></div>
               </div>
 
@@ -464,7 +550,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                 <span>2. Event Date Availability</span>
                 <span className="font-bold text-[#10B981]">25%</span>
               </div>
-              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full overflow-hidden">
                 <div className="bg-[#10B981] h-1.5 rounded-full w-[25%]"></div>
               </div>
 
@@ -472,7 +558,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                 <span>3. Experience & Reliability</span>
                 <span className="font-bold text-[#3B82F6]">20%</span>
               </div>
-              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full overflow-hidden">
                 <div className="bg-[#3B82F6] h-1.5 rounded-full w-[20%]"></div>
               </div>
 
@@ -480,7 +566,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                 <span>4. Budget Suitability</span>
                 <span className="font-bold text-[#F59E0B]">15%</span>
               </div>
-              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full overflow-hidden">
                 <div className="bg-[#F59E0B] h-1.5 rounded-full w-[15%]"></div>
               </div>
 
@@ -488,14 +574,14 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                 <span>5. Location Proximity</span>
                 <span className="font-bold text-[#8B5CF6]">10%</span>
               </div>
-              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full overflow-hidden">
                 <div className="bg-[#8B5CF6] h-1.5 rounded-full w-[10%]"></div>
               </div>
             </div>
           </div>
 
           {/* Adjust Requirements Card */}
-          <div className="bg-white rounded-2xl border border-[#EAEFF8] p-6 shadow-card space-y-4">
+          <div className="bg-white rounded-2xl border border-[#EAEFF8] p-6 shadow-card space-y-4 crew-card-hover">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-[#F0EEFF] text-[#563CF0] flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4" />
@@ -511,7 +597,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
             </div>
             <button
               onClick={() => onNavigate('create-event')}
-              className="w-full py-2.5 rounded-xl border border-[#563CF0] text-[#563CF0] hover:bg-[#F0EEFF] text-[13.5px] font-semibold transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl border border-[#563CF0] text-[#563CF0] hover:bg-[#F0EEFF] text-[13.5px] font-semibold transition-colors flex items-center justify-center gap-2 btn-press"
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>Edit Event Details</span>

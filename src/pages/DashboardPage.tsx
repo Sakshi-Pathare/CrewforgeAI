@@ -138,7 +138,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const displayName = currentUser?.name || 'Varsharani';
 
   return (
-    <div className="max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-150 space-y-7">
+    <div className="max-w-[1360px] mx-auto pb-12 animate-fade-in-up space-y-7">
       {/* Database Status Alert Banner */}
       {!isDbConnected && (
         <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 shadow-sm">

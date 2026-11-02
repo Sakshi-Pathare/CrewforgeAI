@@ -9,7 +9,10 @@ import {
   ArrowRightLeft,
   Clock,
   Phone,
-  Loader2
+  Loader2,
+  Navigation,
+  Radio,
+  X
 } from 'lucide-react';
 import { PageType, Freelancer } from '../types';
 import { getBackupContingency, replaceAssignment } from '../services/api';
@@ -20,6 +23,7 @@ interface BackupCrewPageProps {
   freelancers?: Freelancer[];
   eventId?: string;
   onRosterUpdated?: (assignment: any) => void;
+  onShowToast?: (title: string, message?: string, type?: 'success' | 'info' | 'warning') => void;
 }
 
 interface BackupPair {
@@ -42,6 +46,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
   freelancers = [],
   eventId = 'evt-101',
   onRosterUpdated,
+  onShowToast,
 }) => {
   const [pairs, setPairs] = useState<BackupPair[]>([
     {
@@ -95,8 +100,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
   ]);
 
   const [coveragePercent, setCoveragePercent] = useState(100);
-  const [notification, setNotification] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [pendingSwapItem, setPendingSwapItem] = useState<BackupPair | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -116,7 +120,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
     return () => { isMounted = false; };
   }, [eventId]);
 
-  const handleSwap = async (item: BackupPair) => {
+  const executeSwap = async (item: BackupPair) => {
     const isCurrentlySwapped = item.swapped;
 
     // Call backend replacement endpoint
@@ -128,7 +132,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
           avatar: item.backupAvatar,
         }, isCurrentlySwapped ? 'Reverted to original primary' : 'Activated emergency standby');
       }
-    } catch (e) {
+    } catch {
       // continues with optimistic UI update
     }
 
@@ -149,13 +153,14 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
       return p;
     }));
 
+    const alertTitle = isCurrentlySwapped ? 'Primary Restored' : 'Emergency Swap Activated';
     const alertMsg = isCurrentlySwapped 
-      ? 'Primary crew restored. Standby talent returned to ready pool.'
-      : 'Emergency Standby Activated! Production call sheet and live run sheet updated.';
-    
-    setNotification(alertMsg);
+      ? 'Primary talent restored to live run sheet.'
+      : `Standby ${item.backupName} deployed for ${item.role}. Call sheet and venue pass dispatched.`;
+
+    onShowToast?.(alertTitle, alertMsg, isCurrentlySwapped ? 'info' : 'warning');
     onRosterUpdated?.(item);
-    setTimeout(() => setNotification(null), 4000);
+    setPendingSwapItem(null);
   };
 
   const handleOpenProfileByName = (fullName: string) => {
@@ -167,15 +172,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
   };
 
   return (
-    <div className="max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-150 space-y-7">
-      {/* Toast Notification */}
-      {notification && (
-        <div className="fixed top-20 right-8 z-50 bg-[#101D4B] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-[#563CF0] flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
-          <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
-          <span className="text-[13.5px] font-medium">{notification}</span>
-        </div>
-      )}
-
+    <div className="max-w-[1360px] mx-auto pb-12 animate-fade-in-up space-y-7">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -188,7 +185,8 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold bg-[#E8F8F0] text-[#10B981] border border-[#10B981]/30">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-bold bg-[#E8F8F0] text-[#10B981] border border-[#10B981]/30">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-live-pulse" />
             <ShieldCheck className="w-4 h-4" />
             Shield Protection Active ({coveragePercent}% Covered)
           </span>
@@ -198,20 +196,20 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
       {/* Hero Contingency Card */}
       <div className="bg-gradient-to-r from-[#101D4B] to-[#1D2F6B] rounded-2xl p-6 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-card">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-[#563CF0] flex items-center justify-center text-white shrink-0">
-            <RefreshCw className="w-6 h-6 animate-spin-slow" />
+          <div className="w-12 h-12 rounded-xl bg-[#563CF0] flex items-center justify-center text-white shrink-0 shadow-lg">
+            <RefreshCw className="w-6 h-6 animate-float" />
           </div>
           <div>
             <h2 className="text-[18px] font-bold">1-Click Emergency Crew Swap</h2>
             <p className="text-[13px] text-white/80 mt-0.5 max-w-xl">
-              If an assigned freelancer faces a transit delay or emergency, tap "Instant Swap" to immediately assign pre-briefed backup talent at matching rates.
+              If an assigned freelancer faces transit delay or emergency, tap "Instant Swap" to immediately assign pre-briefed backup talent at pre-negotiated rates.
             </p>
           </div>
         </div>
 
         <button
           onClick={() => onNavigate('find-crew')}
-          className="px-5 py-2.5 rounded-xl bg-white text-[#101D4B] hover:bg-[#F2F5FD] font-bold text-[13px] shrink-0 transition-all"
+          className="px-5 py-2.5 rounded-xl bg-white text-[#101D4B] hover:bg-[#F2F5FD] font-bold text-[13px] shrink-0 transition-all btn-press shadow-sm"
         >
           Add Standby Talent
         </button>
@@ -219,15 +217,20 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
 
       {/* Standby Matrix */}
       <div className="space-y-4">
-        <h2 className="text-[17px] font-bold text-[#142653]">
-          Active Contingency Mappings ({pairs.length} Roles Protected)
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-[17px] font-bold text-[#142653]">
+            Active Contingency Mappings ({pairs.length})
+          </h2>
+          <span className="text-[12.5px] text-[#5F6D82]">
+            Auto-dispatches replacement credentials via SMS/WhatsApp
+          </span>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {pairs.map((item) => (
             <div
               key={item.id}
-              className={`bg-white rounded-2xl border p-6 shadow-card transition-all ${
+              className={`bg-white rounded-2xl border p-6 shadow-card transition-all crew-card-hover ${
                 item.swapped ? 'border-[#563CF0] ring-2 ring-[#563CF0]/20' : 'border-[#EAEFF8]'
               }`}
             >
@@ -241,13 +244,16 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
                     {item.role}
                   </h3>
                 </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${
                   item.standbyStatus === 'Standby Engaged'
                     ? 'bg-[#FEF3C7] text-[#D97706]'
                     : item.standbyStatus === 'Uncovered'
                     ? 'bg-[#FEE2E2] text-[#EF4444]'
                     : 'bg-[#E8F8F0] text-[#10B981]'
                 }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    item.standbyStatus === 'Standby Engaged' ? 'bg-[#D97706]' : 'bg-[#10B981]'
+                  }`} />
                   {item.standbyStatus}
                 </span>
               </div>
@@ -261,7 +267,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
                   title="Click to view profile"
                 >
                   <div className="text-[10.5px] font-bold text-[#8A95A5] uppercase mb-2">
-                    {item.swapped ? 'Standby (Now Primary)' : 'Primary Assigned'}
+                    {item.swapped ? 'Standby (Now Active)' : 'Primary Assigned'}
                   </div>
                   <div className="flex items-center gap-2.5">
                     <img
@@ -322,21 +328,90 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
                 </span>
 
                 <button
-                  onClick={() => handleSwap(item)}
-                  className={`px-4 py-2 rounded-xl text-[12.5px] font-bold flex items-center gap-2 transition-all ${
+                  onClick={() => {
+                    if (item.swapped) {
+                      executeSwap(item);
+                    } else {
+                      setPendingSwapItem(item);
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-xl text-[12.5px] font-bold flex items-center gap-2 transition-all btn-press ${
                     item.swapped
                       ? 'bg-[#101D4B] text-white hover:bg-[#1B2A5E]'
                       : 'bg-[#563CF0] text-white hover:bg-[#472FD6] shadow-sm'
                   }`}
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5" />
-                  <span>{item.swapped ? 'Revert Swap' : 'Instant Swap'}</span>
+                  <span>{item.swapped ? 'Revert to Primary' : 'Instant Swap'}</span>
                 </button>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Emergency Standby Confirmation Modal */}
+      {pendingSwapItem && (
+        <div className="fixed inset-0 bg-[#101D4B]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-[#EAEFF8] animate-fade-in-up">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F0F3F9]">
+              <div className="flex items-center gap-2 text-[#D97706]">
+                <AlertTriangle className="w-5 h-5" />
+                <h3 className="text-[16px] font-bold text-[#142653]">Confirm Standby Swap</h3>
+              </div>
+              <button 
+                onClick={() => setPendingSwapItem(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3 text-[13px] text-[#5F6D82]">
+              <p>
+                You are about to activate emergency standby replacement for the role of <strong className="text-[#142653]">{pendingSwapItem.role}</strong>.
+              </p>
+
+              <div className="p-3 rounded-2xl bg-[#F8FAFD] border border-[#EAEFF8] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#8A95A5]">Current:</span>
+                  <span className="font-bold text-[#142653]">{pendingSwapItem.primaryName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#8A95A5]">Replacement:</span>
+                  <span className="font-bold text-[#563CF0]">{pendingSwapItem.backupName}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-[#EAEFF8]">
+                  <span className="text-[#8A95A5]">Estimated Arrival:</span>
+                  <span className="font-bold text-[#10B981] flex items-center gap-1">
+                    <Navigation className="w-3.5 h-3.5" /> 12 mins (Pune radius)
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-[11.5px] text-[#8A95A5] flex items-center gap-1.5">
+                <Radio className="w-3.5 h-3.5 text-[#563CF0]" />
+                Automated call sheet update & radio credentials will be sent immediately.
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => executeSwap(pendingSwapItem)}
+                className="flex-1 py-2.5 rounded-xl bg-[#563CF0] hover:bg-[#472FD6] text-white font-bold text-[13px] shadow-btn transition-all btn-press"
+              >
+                Confirm & Dispatch Standby
+              </button>
+              <button
+                onClick={() => setPendingSwapItem(null)}
+                className="px-4 py-2.5 rounded-xl border border-[#DFE5F2] hover:bg-[#F3F5FA] text-[#5F6D82] font-semibold text-[13px] transition-colors btn-press"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -93,7 +93,7 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
   });
 
   return (
-    <div className="max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-150">
+    <div className="max-w-[1360px] mx-auto pb-12 animate-fade-in-up">
       {/* Page Header & AI Callout Banner */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-7">
         <div>
@@ -349,7 +349,7 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
               return (
                 <div
                   key={crew.id}
-                  className="bg-white rounded-2xl border border-[#EAEFF8] p-5 shadow-card hover:shadow-card-hover transition-all flex flex-col justify-between group"
+                  className="bg-white rounded-2xl border border-[#EAEFF8] p-5 shadow-card hover:shadow-card-hover transition-all flex flex-col justify-between group crew-card-hover"
                 >
                   <div>
                     {/* Top Status Badge */}
@@ -363,7 +363,7 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            crew.status === 'Online' ? 'bg-[#10B981]' : 'bg-[#8A95A5]'
+                            crew.status === 'Online' ? 'bg-[#10B981] animate-live-pulse' : 'bg-[#8A95A5]'
                           }`}
                         />
                         {crew.status}

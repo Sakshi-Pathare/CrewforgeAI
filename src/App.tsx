@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { TopNav } from './components/TopNav';
 import { ProfileModal } from './components/ProfileModal';
 import { EventDetailsModal } from './components/EventDetailsModal';
+import { ToastContainer, ToastMessage } from './components/Toast';
 import { CreateEventPage } from './pages/CreateEventPage';
 import { FindCrewPage } from './pages/FindCrewPage';
 import { AiRecommendationsPage } from './pages/AiRecommendationsPage';
@@ -61,13 +62,32 @@ export const App: React.FC = () => {
   // Modal State
   const [viewingFreelancer, setViewingFreelancer] = useState<Freelancer | null>(null);
 
+  // Global Toasts State
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const addToast = (title: string, message?: string, type: 'success' | 'info' | 'warning' = 'success') => {
+    const newToast: ToastMessage = {
+      id: `toast-${Date.now()}-${Math.random()}`,
+      title,
+      message,
+      type,
+    };
+    setToasts(prev => [...prev.slice(-3), newToast]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== newToast.id));
+    }, 4000);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
   // Initial Data & Auth Session Sync with Backend
   useEffect(() => {
     let isMounted = true;
 
     async function syncBackendData() {
       try {
-        // 1. Sync live auth session if token exists in localStorage
         const token = getStoredToken();
         if (token) {
           try {
@@ -80,7 +100,6 @@ export const App: React.FC = () => {
           }
         }
 
-        // 2. Sync domain data from MongoDB
         const [liveFreelancers, liveEvents, liveAssignments] = await Promise.all([
           getFreelancers(),
           getEvents(),
@@ -115,10 +134,12 @@ export const App: React.FC = () => {
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     setCurrentPage('dashboard');
+    addToast('Welcome back', `Signed in as ${user.name || user.email}.`, 'success');
   };
 
   const handleRegisterSuccess = (user: User) => {
     setCurrentUser(user);
+    addToast('Account Created', 'Registration successful! Complete your profile.', 'success');
     if (user.role === 'Freelancer') {
       setCurrentPage('freelancer-profile');
     } else {
@@ -130,6 +151,7 @@ export const App: React.FC = () => {
     logoutUser();
     setCurrentUser(null);
     setCurrentPage('login');
+    addToast('Signed Out', 'You have been logged out securely.', 'info');
   };
 
   // Event Handlers
@@ -145,6 +167,7 @@ export const App: React.FC = () => {
       return next;
     });
     setIsEditingEvent(false);
+    addToast('Event Updated', `${updated.name || eventData.name} details saved.`, 'success');
   };
 
   const handleEditEventFromDashboard = (evt: EventData) => {
@@ -161,6 +184,7 @@ export const App: React.FC = () => {
       setEventData(updatedEvt);
     }
     setSelectedEventModal(updatedEvt);
+    addToast('Event Synchronized', `${updatedEvt.name} changes persisted.`, 'success');
   };
 
   const handleEventDeleted = (eventId: string) => {
@@ -169,6 +193,7 @@ export const App: React.FC = () => {
       setEventData(INITIAL_EVENT);
     }
     setSelectedEventModal(null);
+    addToast('Event Removed', 'Event removed from active schedule.', 'info');
   };
 
   const handleSelectFreelancer = (crew: Freelancer) => {
@@ -178,6 +203,11 @@ export const App: React.FC = () => {
       // Deselect cleanly
       setSelectedIds(prev => prev.filter(id => id !== crew.id));
       setAssignments(prev => prev.filter(item => item.freelancerId !== crew.id));
+      addToast(
+        'Crew Deselected',
+        `${crew.name} (${crew.role}) was unassigned from ${eventData.name}.`,
+        'info'
+      );
     } else {
       // Select cleanly
       const newAssignment: CrewAssignment = {
@@ -194,12 +224,16 @@ export const App: React.FC = () => {
       };
       setSelectedIds(prev => [...prev, crew.id]);
       setAssignments(prev => [newAssignment, ...prev]);
+      addToast(
+        'Crew Confirmed',
+        `${crew.name} (${crew.role}) assigned to ${eventData.name} call sheet.`,
+        'success'
+      );
     }
   };
 
   const handleUpdateAssignmentStatus = (id: string, newStatus: CrewAssignment['status']) => {
     setAssignments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
-    // Persist to backend
     apiUpdateAssignmentStatus(id, newStatus).catch(() => {});
   };
 
@@ -314,6 +348,7 @@ export const App: React.FC = () => {
               onViewProfile={setViewingFreelancer}
               onSelectFreelancer={handleSelectFreelancer}
               selectedIds={selectedIds}
+              onShowToast={addToast}
             />
           )}
 
@@ -323,6 +358,8 @@ export const App: React.FC = () => {
               assignments={assignments}
               onNavigate={setCurrentPage}
               onUpdateStatus={handleUpdateAssignmentStatus}
+              eventData={eventData}
+              onShowToast={addToast}
             />
           )}
 
@@ -333,6 +370,7 @@ export const App: React.FC = () => {
               onViewProfile={setViewingFreelancer}
               freelancers={freelancers}
               eventId={eventData.id}
+              onShowToast={addToast}
               onRosterUpdated={(swappedItem) => {
                 setAssignments(prev => prev.map(a => {
                   if (a.role === swappedItem.role) {
@@ -372,6 +410,9 @@ export const App: React.FC = () => {
           setCurrentPage('ai-recommendations');
         }}
       />
+
+      {/* Global Interactive Notification Toasts */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 };
