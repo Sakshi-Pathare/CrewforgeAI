@@ -19,19 +19,22 @@ import {
   Freelancer, 
   EventData, 
   CrewAssignment,
-  User 
+  User,
+  BackupPair
 } from './types';
 import { 
   INITIAL_EVENT, 
   MOCK_FREELANCERS, 
   INITIAL_ASSIGNMENTS, 
-  UPCOMING_EVENTS 
+  UPCOMING_EVENTS,
+  INITIAL_BACKUP_PAIRS
 } from './data/mockData';
 import { 
   getFreelancers, 
   getEvents, 
   getAssignments, 
   updateAssignmentStatus as apiUpdateAssignmentStatus,
+  replaceAssignment,
   getStoredUser,
   getStoredToken,
   logoutUser,
@@ -58,6 +61,7 @@ export const App: React.FC = () => {
   // Freelancer & Assignment State
   const [freelancers, setFreelancers] = useState<Freelancer[]>(MOCK_FREELANCERS);
   const [assignments, setAssignments] = useState<CrewAssignment[]>(INITIAL_ASSIGNMENTS);
+  const [backupPairs, setBackupPairs] = useState<BackupPair[]>(INITIAL_BACKUP_PAIRS);
   const [selectedIds, setSelectedIds] = useState<string[]>(['f-1', 'f-2', 'f-3', 'f-7']);
 
   // Modal State
@@ -238,6 +242,81 @@ export const App: React.FC = () => {
     apiUpdateAssignmentStatus(id, newStatus).catch(() => {});
   };
 
+  const handleSwapBackupPair = (item: BackupPair) => {
+    const isCurrentlySwapped = item.swapped;
+    const newPrimaryName = item.backupName;
+    const newPrimaryAvatar = item.backupAvatar;
+    const newBackupName = item.primaryName;
+    const newBackupAvatar = item.primaryAvatar;
+
+    // Call backend replacement endpoint asynchronously
+    try {
+      if (item.assignmentId) {
+        replaceAssignment(
+          item.assignmentId,
+          {
+            id: item.id,
+            name: newPrimaryName,
+            avatar: newPrimaryAvatar,
+          },
+          isCurrentlySwapped ? 'Reverted to original primary' : 'Activated emergency standby'
+        ).catch(() => {});
+      }
+    } catch {}
+
+    // 1. Update backup pairs in App state so Backup Crew page remembers swapped status
+    setBackupPairs(prev =>
+      prev.map(p => {
+        if (p.id === item.id) {
+          return {
+            ...p,
+            primaryName: newPrimaryName,
+            primaryAvatar: newPrimaryAvatar,
+            backupName: newBackupName,
+            backupAvatar: newBackupAvatar,
+            standbyStatus: isCurrentlySwapped ? 'Ready On-Call' : 'Standby Engaged',
+            swapped: !isCurrentlySwapped,
+          };
+        }
+        return p;
+      })
+    );
+
+    // 2. Update assignments state so Assignments Page reflects the swap immediately
+    setAssignments(prev => {
+      const cleanOldPrimary = item.primaryName.split('(')[0].trim().toLowerCase();
+      const cleanOldBackup = item.backupName.split('(')[0].trim().toLowerCase();
+      const roleLower = item.role.trim().toLowerCase();
+
+      return prev.map(a => {
+        const matchesAssignmentId = item.assignmentId && (a.id === item.assignmentId || a.id === `asg-${item.assignmentId}`);
+        const matchesRole = a.role.trim().toLowerCase() === roleLower;
+        const matchesName = 
+          a.freelancerName.toLowerCase().includes(cleanOldPrimary) ||
+          a.freelancerName.toLowerCase().includes(cleanOldBackup);
+
+        if (matchesAssignmentId || matchesRole || matchesName) {
+          return {
+            ...a,
+            freelancerName: newPrimaryName,
+            avatar: newPrimaryAvatar,
+            backupAssigned: newBackupName,
+            isStandbyActive: !isCurrentlySwapped,
+            status: !isCurrentlySwapped ? 'Briefed' : 'Confirmed',
+          };
+        }
+        return a;
+      });
+    });
+
+    const alertTitle = isCurrentlySwapped ? 'Primary Talent Restored' : 'Emergency Swap Activated';
+    const alertMsg = isCurrentlySwapped
+      ? `${newPrimaryName} restored as primary in Assignments & Call Sheet.`
+      : `Standby ${newPrimaryName} deployed for ${item.role}. Assignments roster & Call Sheet updated!`;
+
+    addToast(alertTitle, alertMsg, isCurrentlySwapped ? 'info' : 'warning');
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F2F5FD]">
       {/* 1. Left Fixed Sidebar (Desktop Fixed, Mobile Slide-Over Drawer) */}
@@ -375,20 +454,9 @@ export const App: React.FC = () => {
               onViewProfile={setViewingFreelancer}
               freelancers={freelancers}
               eventId={eventData.id}
+              pairs={backupPairs}
+              onSwapPair={handleSwapBackupPair}
               onShowToast={addToast}
-              onRosterUpdated={(swappedItem) => {
-                setAssignments(prev => prev.map(a => {
-                  if (a.role === swappedItem.role) {
-                    return {
-                      ...a,
-                      freelancerName: swappedItem.primaryName,
-                      avatar: swappedItem.primaryAvatar,
-                      backupAssigned: swappedItem.backupName,
-                    };
-                  }
-                  return a;
-                }));
-              }}
             />
           )}
         </main>

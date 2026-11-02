@@ -16,6 +16,7 @@ import {
   Printer,
   Sparkles,
   PhoneCall,
+  ArrowRightLeft,
   X
 } from 'lucide-react';
 import { CrewAssignment, PageType, EventData } from '../types';
@@ -193,8 +194,13 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
                   <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#10B981] ring-2 ring-white" />
                 </div>
                 <div>
-                  <h3 className="text-[16px] font-bold text-[#142653] flex items-center gap-2">
+                  <h3 className="text-[16px] font-bold text-[#142653] flex items-center gap-2 flex-wrap">
                     <span>{item.freelancerName}</span>
+                    {item.isStandbyActive && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] border border-[#F59E0B]/30 animate-pulse">
+                        <ArrowRightLeft className="w-3 h-3" /> Standby Active
+                      </span>
+                    )}
                   </h3>
                   <p className="text-[12.5px] text-[#5F6D82] font-medium">
                     {item.role}
@@ -209,7 +215,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
               <div className="flex flex-wrap items-center gap-6">
                 <div>
                   <div className="text-[11px] font-semibold text-[#8A95A5] uppercase tracking-wide mb-1">
-                    Backup Assigned
+                    {item.isStandbyActive ? 'Original Primary (On Standby)' : 'Backup Assigned'}
                   </div>
                   <div className="text-[13px] font-semibold text-[#563CF0] flex items-center gap-1.5">
                     <UserCheck className="w-3.5 h-3.5" />

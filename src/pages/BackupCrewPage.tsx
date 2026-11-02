@@ -14,7 +14,7 @@ import {
   Radio,
   X
 } from 'lucide-react';
-import { PageType, Freelancer } from '../types';
+import { PageType, Freelancer, BackupPair } from '../types';
 import { getBackupContingency, replaceAssignment } from '../services/api';
 
 interface BackupCrewPageProps {
@@ -22,22 +22,10 @@ interface BackupCrewPageProps {
   onViewProfile: (freelancer: Freelancer) => void;
   freelancers?: Freelancer[];
   eventId?: string;
+  pairs?: BackupPair[];
+  onSwapPair?: (item: BackupPair) => void;
   onRosterUpdated?: (assignment: any) => void;
   onShowToast?: (title: string, message?: string, type?: 'success' | 'info' | 'warning') => void;
-}
-
-interface BackupPair {
-  id: string;
-  assignmentId?: string;
-  role: string;
-  primaryName: string;
-  primaryAvatar: string;
-  backupName: string;
-  backupAvatar: string;
-  standbyStatus: 'Ready On-Call' | 'Within 15 Mins' | 'Standby Engaged' | 'Uncovered';
-  riskScore: 'Low Risk' | 'Medium Risk' | 'High Risk';
-  swapped?: boolean;
-  explanation?: string;
 }
 
 export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
@@ -45,6 +33,8 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
   onViewProfile,
   freelancers = [],
   eventId = 'evt-101',
+  pairs: propsPairs,
+  onSwapPair,
   onRosterUpdated,
   onShowToast,
 }) => {
@@ -102,12 +92,14 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
   const [coveragePercent, setCoveragePercent] = useState(100);
   const [pendingSwapItem, setPendingSwapItem] = useState<BackupPair | null>(null);
 
+  const displayPairs = propsPairs || pairs;
+
   useEffect(() => {
     let isMounted = true;
     const loadContingency = async () => {
       try {
         const data = await getBackupContingency(eventId);
-        if (isMounted && data && data.backupPairs && data.backupPairs.length > 0) {
+        if (isMounted && data && data.backupPairs && data.backupPairs.length > 0 && !propsPairs) {
           setPairs(data.backupPairs);
           setCoveragePercent(data.coveragePercent);
         }
@@ -118,48 +110,53 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
 
     loadContingency();
     return () => { isMounted = false; };
-  }, [eventId]);
+  }, [eventId, propsPairs]);
 
   const executeSwap = async (item: BackupPair) => {
+    if (onSwapPair) {
+      onSwapPair(item);
+      setPendingSwapItem(null);
+      return;
+    }
+
     const isCurrentlySwapped = item.swapped;
+    const newPrimaryName = item.backupName;
+    const newPrimaryAvatar = item.backupAvatar;
+    const newBackupName = item.primaryName;
+    const newBackupAvatar = item.primaryAvatar;
 
     // Call backend replacement endpoint
     try {
       if (item.assignmentId) {
         await replaceAssignment(item.assignmentId, {
           id: item.id,
-          name: item.backupName,
-          avatar: item.backupAvatar,
+          name: newPrimaryName,
+          avatar: newPrimaryAvatar,
         }, isCurrentlySwapped ? 'Reverted to original primary' : 'Activated emergency standby');
       }
     } catch {
       // continues with optimistic UI update
     }
 
-    setPairs(prev => prev.map(p => {
-      if (p.id === item.id) {
-        const tempName = p.primaryName;
-        const tempAvatar = p.primaryAvatar;
-        return {
-          ...p,
-          primaryName: p.backupName,
-          primaryAvatar: p.backupAvatar,
-          backupName: tempName,
-          backupAvatar: tempAvatar,
-          standbyStatus: isCurrentlySwapped ? 'Ready On-Call' : 'Standby Engaged',
-          swapped: !isCurrentlySwapped
-        };
-      }
-      return p;
-    }));
+    const updatedPair: BackupPair = {
+      ...item,
+      primaryName: newPrimaryName,
+      primaryAvatar: newPrimaryAvatar,
+      backupName: newBackupName,
+      backupAvatar: newBackupAvatar,
+      standbyStatus: isCurrentlySwapped ? 'Ready On-Call' : 'Standby Engaged',
+      swapped: !isCurrentlySwapped
+    };
+
+    setPairs(prev => prev.map(p => p.id === item.id ? updatedPair : p));
 
     const alertTitle = isCurrentlySwapped ? 'Primary Restored' : 'Emergency Swap Activated';
     const alertMsg = isCurrentlySwapped 
       ? 'Primary talent restored to live run sheet.'
-      : `Standby ${item.backupName} deployed for ${item.role}. Call sheet and venue pass dispatched.`;
+      : `Standby ${newPrimaryName} deployed for ${item.role}. Call sheet and venue pass dispatched.`;
 
     onShowToast?.(alertTitle, alertMsg, isCurrentlySwapped ? 'info' : 'warning');
-    onRosterUpdated?.(item);
+    onRosterUpdated?.(updatedPair);
     setPendingSwapItem(null);
   };
 
@@ -219,7 +216,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[17px] font-bold text-[#142653]">
-            Active Contingency Mappings ({pairs.length})
+            Active Contingency Mappings ({displayPairs.length})
           </h2>
           <span className="text-[12.5px] text-[#5F6D82]">
             Auto-dispatches replacement credentials via SMS/WhatsApp
@@ -227,7 +224,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {pairs.map((item) => (
+          {displayPairs.map((item) => (
             <div
               key={item.id}
               className={`bg-white rounded-2xl border p-6 shadow-card transition-all crew-card-hover ${

@@ -1,4 +1,4 @@
-import { Freelancer, EventData, CrewAssignment } from '../types';
+import { Freelancer, EventData, CrewAssignment, BackupPair } from '../types';
 
 export const INITIAL_EVENT: EventData = {
   id: 'evt-101',
@@ -297,6 +297,57 @@ export const UPCOMING_EVENTS: EventData[] = [
     requiredRoles: ['Sound Engineer', 'Lighting Designer', 'Security', 'Stage Hands'],
     bannerImage: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&auto=format&fit=crop&q=80',
     status: 'Planning'
+  }
+];
+
+export const INITIAL_BACKUP_PAIRS: BackupPair[] = [
+  {
+    id: 'bp-1',
+    assignmentId: 'asg-2',
+    role: 'Sound Engineer',
+    primaryName: 'Aditya Kulkarni',
+    primaryAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&auto=format&fit=crop&q=80',
+    backupName: 'Rohit Sharma (Audio Tech)',
+    backupAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=240&auto=format&fit=crop&q=80',
+    standbyStatus: 'Within 15 Mins',
+    riskScore: 'Low Risk',
+    explanation: 'Backup ready: Rohit Sharma has high audio & stage lighting compatibility as standby.',
+  },
+  {
+    id: 'bp-2',
+    assignmentId: 'asg-1',
+    role: 'Photographer',
+    primaryName: 'Riya Deshmukh',
+    primaryAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&auto=format&fit=crop&q=80',
+    backupName: 'Ananya Roy (Videographer)',
+    backupAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=240&auto=format&fit=crop&q=80',
+    standbyStatus: 'Ready On-Call',
+    riskScore: 'Low Risk',
+    explanation: 'Backup ready: Ananya Roy offers 93% visual capture compatibility as standby.',
+  },
+  {
+    id: 'bp-3',
+    assignmentId: 'asg-3',
+    role: 'Event Anchor',
+    primaryName: 'Sneha Iyer',
+    primaryAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80',
+    backupName: 'Arjun Mehta (Lead Host)',
+    backupAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=240&auto=format&fit=crop&q=80',
+    standbyStatus: 'Ready On-Call',
+    riskScore: 'Low Risk',
+    explanation: 'Backup ready: Arjun Mehta is seasoned in crowd management and stage pacing.',
+  },
+  {
+    id: 'bp-4',
+    assignmentId: 'asg-4',
+    role: 'Security Lead',
+    primaryName: 'Priya Patel',
+    primaryAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=240&auto=format&fit=crop&q=80',
+    backupName: 'Sameer Khan (Operations)',
+    backupAvatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=240&auto=format&fit=crop&q=80',
+    standbyStatus: 'Within 15 Mins',
+    riskScore: 'Low Risk',
+    explanation: 'Backup ready: Sameer Khan coordinates crowd zones and perimeter safety.',
   }
 ];
 
