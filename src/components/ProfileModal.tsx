@@ -42,7 +42,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         </div>
 
         {/* Profile Content */}
-        <div className="px-8 pb-8 pt-0 relative">
+        <div className="px-5 sm:px-8 pb-6 sm:pb-8 pt-0 relative">
           {/* Avatar and Top Info */}
           <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between -mt-16 mb-6 gap-4">
             <div className="relative">

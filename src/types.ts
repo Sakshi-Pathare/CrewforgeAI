@@ -139,6 +139,22 @@ export interface CrewAssignment {
   fee: number;
   status: 'Pending' | 'Confirmed' | 'Briefed' | 'On-Site' | 'Completed' | 'Declined' | 'Cancelled';
   backupAssigned?: string;
+  isStandbyActive?: boolean;
   phone?: string;
+  email?: string;
   eventId?: string;
+}
+
+export interface BackupPair {
+  id: string;
+  assignmentId?: string;
+  role: string;
+  primaryName: string;
+  primaryAvatar: string;
+  backupName: string;
+  backupAvatar: string;
+  standbyStatus: 'Ready On-Call' | 'Within 15 Mins' | 'Standby Engaged' | 'Uncovered';
+  riskScore: 'Low Risk' | 'Medium Risk' | 'High Risk';
+  swapped?: boolean;
+  explanation?: string;
 }

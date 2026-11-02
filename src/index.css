@@ -42,6 +42,12 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
   border: 2px solid #FFFFFF;
   box-shadow: 0 1px 4px rgba(86, 60, 240, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(86, 60, 240, 0.6);
 }
 
 input[type="range"]::-moz-range-thumb {
@@ -52,5 +58,103 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: 2px solid #FFFFFF;
   box-shadow: 0 1px 4px rgba(86, 60, 240, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(86, 60, 240, 0.6);
+}
+
+/* Keyframe Animations */
+@keyframes fadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes livePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes aiGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(86, 60, 240, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(117, 69, 245, 0.6);
+  }
+}
+
+@keyframes progressShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes floatSubtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-live-pulse {
+  animation: livePulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.animate-ai-glow {
+  animation: aiGlow 3s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: floatSubtle 3s ease-in-out infinite;
+}
+
+.shimmer-bar {
+  background: linear-gradient(90deg, rgba(86,60,240,0.1) 0%, rgba(86,60,240,0.3) 50%, rgba(86,60,240,0.1) 100%);
+  background-size: 200% 100%;
+  animation: progressShimmer 2s infinite linear;
+}
+
+/* Micro-interaction Card hover polish */
+.crew-card-hover {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
+}
+
+.crew-card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px -6px rgba(16, 29, 75, 0.09), 0 4px 10px -2px rgba(16, 29, 75, 0.04);
+  border-color: #D6E0F5;
+}
+
+/* Button click tactile feel */
+.btn-press {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
