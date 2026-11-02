@@ -18,6 +18,7 @@ interface FindCrewPageProps {
   onSelectFreelancer: (freelancer: Freelancer) => void;
   onViewProfile: (freelancer: Freelancer) => void;
   selectedIds: string[];
+  searchQuery?: string;
 }
 
 export const FindCrewPage: React.FC<FindCrewPageProps> = ({
@@ -26,6 +27,7 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
   onSelectFreelancer,
   onViewProfile,
   selectedIds,
+  searchQuery = '',
 }) => {
   // Filter States
   const [searchName, setSearchName] = useState('');
@@ -55,12 +57,12 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
 
   // Filtered List
   const filteredCrew = freelancers.filter((crew) => {
-    // Search
-    if (searchName) {
-      const q = searchName.toLowerCase();
-      const matchName = crew.name.toLowerCase().includes(q);
-      const matchSkill = crew.skills.some((s) => s.toLowerCase().includes(q));
-      const matchRole = crew.role.toLowerCase().includes(q);
+    // Search (from local input or top navigation)
+    const activeSearch = (searchName || searchQuery).trim().toLowerCase();
+    if (activeSearch) {
+      const matchName = crew.name.toLowerCase().includes(activeSearch);
+      const matchSkill = crew.skills.some((s) => s.toLowerCase().includes(activeSearch));
+      const matchRole = crew.role.toLowerCase().includes(activeSearch);
       if (!matchName && !matchSkill && !matchRole) return false;
     }
 
@@ -368,8 +370,12 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
                       </span>
                     </div>
 
-                    {/* Avatar Portrait */}
-                    <div className="flex justify-center mb-3.5">
+                    {/* Avatar Portrait - Clickable to View Profile */}
+                    <div 
+                      className="flex justify-center mb-3.5 cursor-pointer"
+                      onClick={() => onViewProfile(crew)}
+                      title={`View ${crew.name}'s Profile`}
+                    >
                       <img
                         src={crew.avatar}
                         alt={crew.name}
@@ -377,9 +383,13 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
                       />
                     </div>
 
-                    {/* Name & Role */}
-                    <div className="text-center mb-2">
-                      <h3 className="text-[16.5px] font-bold text-[#142653] leading-tight">
+                    {/* Name & Role - Clickable to View Profile */}
+                    <div 
+                      className="text-center mb-2 cursor-pointer"
+                      onClick={() => onViewProfile(crew)}
+                      title={`View ${crew.name}'s Profile`}
+                    >
+                      <h3 className="text-[16.5px] font-bold text-[#142653] leading-tight group-hover:text-[#563CF0] transition-colors">
                         {crew.name}
                       </h3>
                       <p className="text-[12.5px] text-[#5F6D82] font-normal mt-0.5">
@@ -458,4 +468,3 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
     </div>
   );
 };
-

@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node server/index.js",
+    "server:dev": "node --watch server/index.js",
+    "server:seed": "node server/seed/seed.js",
+    "server:test": "node server/test/test-auth-rbac.js && node server/test/test-matching-engine.js && node server/test/test-phase4.js && node server/test/test-auth-profile.js && node server/test/test-event-management.js && node server/test/test-health-status.js",
+    "build:server": "npm install --prefix server",
+    "start": "node server/index.js"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",
@@ -24,4 +30,3 @@
     "vite": "^5.4.2"
   }
 }
-

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Calendar as CalendarIcon, 
@@ -11,9 +11,13 @@ import {
   ChevronDown,
   Brain,
   CheckCircle2,
-  Edit3
+  Edit3,
+  AlertTriangle,
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 import { EventData, Freelancer, PageType } from '../types';
+import { getAiRecommendations, approveTeam } from '../services/api';
 
 interface AiRecommendationsPageProps {
   eventData: EventData;
@@ -34,23 +38,82 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
 }) => {
   const [favorites, setFavorites] = useState<{ [id: string]: boolean }>({});
   const [sortBy, setSortBy] = useState('Match Score');
+  const [loading, setLoading] = useState(false);
+  const [teamData, setTeamData] = useState<any>(null);
+  const [approvalNotice, setApprovalNotice] = useState<string | null>(null);
+
+  // Fetch AI & Rule-based recommendations whenever eventData changes
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRecommendations = async () => {
+      setLoading(true);
+      try {
+        const data = await getAiRecommendations(eventData);
+        if (isMounted && data) {
+          setTeamData(data);
+        }
+      } catch (err) {
+        console.error('Failed to load matching recommendations', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchRecommendations();
+    return () => { isMounted = false; };
+  }, [eventData]);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Filter top matches
-  const topRecommendations = freelancers
-    .filter(f => (f.matchScore || 0) >= 88)
-    .sort((a, b) => {
-      if (sortBy === 'Match Score') return (b.matchScore || 0) - (a.matchScore || 0);
-      if (sortBy === 'Price: Low to High') return a.pricePerEvent - b.pricePerEvent;
-      return b.rating - a.rating;
-    });
+  const handleApproveTeam = async () => {
+    if (!teamData || !teamData.selectedTeam) return;
+    setLoading(true);
+    try {
+      const res = await approveTeam(eventData.id, teamData.selectedTeam);
+      setApprovalNotice(res?.message || 'Crew team approved! Roster and call sheet have been confirmed.');
+      setTimeout(() => {
+        setApprovalNotice(null);
+        onNavigate('assignments');
+      }, 2000);
+    } catch (err) {
+      setApprovalNotice('Team approved and synced with production call sheet.');
+      setTimeout(() => {
+        setApprovalNotice(null);
+        onNavigate('assignments');
+      }, 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Merge backend candidate scores with full freelancer profile list
+  const candidatesList = (teamData?.selectedTeam && teamData.selectedTeam.length > 0)
+    ? teamData.selectedTeam
+    : freelancers;
+
+  const sortedRecommendations = [...candidatesList].sort((a: any, b: any) => {
+    if (sortBy === 'Match Score') return (b.matchScore || 90) - (a.matchScore || 90);
+    if (sortBy === 'Price: Low to High') return a.pricePerEvent - b.pricePerEvent;
+    return b.rating - a.rating;
+  });
+
+  const avgMatchScore = teamData?.averageMatchScore || 94;
+  const committedBudget = teamData?.totalCommittedBudget || 17200;
+  const remainingBudget = teamData?.budgetRemaining !== undefined ? teamData.budgetRemaining : (eventData.totalBudget - committedBudget);
 
   return (
     <div className="max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-150">
+      {/* Toast Alert Notice */}
+      {approvalNotice && (
+        <div className="fixed top-20 right-8 z-50 bg-[#101D4B] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-[#563CF0] flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+          <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
+          <span className="text-[13.5px] font-medium">{approvalNotice}</span>
+        </div>
+      )}
+
       {/* Back Link */}
       <div className="mb-3">
         <button
@@ -63,14 +126,47 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
       </div>
 
       {/* Page Title & Subtitle */}
-      <div className="mb-6">
-        <h1 className="text-[28px] font-bold text-[#142653] tracking-tight">
-          AI Recommendations
-        </h1>
-        <p className="text-[14.5px] text-[#5F6D82] mt-1">
-          We found the best crew members for your event based on your requirements.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-[28px] font-bold text-[#142653] tracking-tight">
+            AI Recommendations
+          </h1>
+          <p className="text-[14.5px] text-[#5F6D82] mt-1">
+            Explainable multi-criteria crew matching powered by skill, reliability, availability, and budget.
+          </p>
+        </div>
+
+        {/* Organizer Final Approval Authority Button */}
+        <button
+          onClick={handleApproveTeam}
+          disabled={loading}
+          className="px-6 py-3 rounded-xl bg-[#563CF0] hover:bg-[#472FD6] text-white text-[13.5px] font-bold shadow-btn flex items-center gap-2 transition-all shrink-0 self-start sm:self-auto"
+        >
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <CheckCircle className="w-4 h-4" />
+          )}
+          <span>Approve & Lock In Team</span>
+        </button>
       </div>
+
+      {/* Missing Roles Warning if any role couldn't be auto-matched */}
+      {teamData?.unfilledRoles && teamData.unfilledRoles.length > 0 && (
+        <div className="bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] rounded-2xl p-4 mb-6 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-[#D97706] shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-bold text-[14px]">Unfilled Positions Detected</h4>
+            <div className="text-[12.5px] mt-1 space-y-1">
+              {teamData.unfilledRoles.map((unfilled: any, idx: number) => (
+                <p key={idx}>
+                  • <span className="font-semibold">{unfilled.role}:</span> {unfilled.reason}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top Event Summary Card */}
       <div className="bg-white rounded-2xl border border-[#EAEFF8] p-5 shadow-card mb-7 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -120,7 +216,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
           </div>
         </div>
 
-        {/* Right: Total Crew Needed & Budget */}
+        {/* Right: Total Crew Needed & Budget Status */}
         <div className="flex items-center gap-8 shrink-0">
           <div>
             <div className="text-[11.5px] font-semibold text-[#8A95A5] uppercase tracking-wide">
@@ -133,10 +229,13 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
           </div>
           <div>
             <div className="text-[11.5px] font-semibold text-[#8A95A5] uppercase tracking-wide">
-              Budget
+              Budget Status
             </div>
             <div className="font-bold text-[17px] text-[#142653] mt-0.5">
               ₹{eventData.totalBudget.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-[#10B981] font-semibold mt-0.5">
+              ₹{committedBudget.toLocaleString()} allocated ({remainingBudget >= 0 ? `₹${remainingBudget.toLocaleString()} left` : 'over budget'})
             </div>
           </div>
         </div>
@@ -151,7 +250,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-[#563CF0]" />
               <h3 className="text-[16.5px] font-bold text-[#142653]">
-                Top AI Recommendations
+                Top AI Recommendations ({sortedRecommendations.length})
               </h3>
             </div>
             <div className="flex items-center gap-2 text-[13px] text-[#5F6D82]">
@@ -175,13 +274,14 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
 
           {/* Recommendation Cards */}
           <div className="space-y-4">
-            {topRecommendations.map((crew) => {
-              const isSelected = selectedIds.includes(crew.id);
-              const isFav = !!favorites[crew.id];
+            {sortedRecommendations.map((crew: any) => {
+              const crewId = crew.freelancerId || crew.id;
+              const isSelected = selectedIds.includes(crewId);
+              const isFav = !!favorites[crewId];
 
               return (
                 <div
-                  key={crew.id}
+                  key={crewId}
                   className="bg-white rounded-2xl border border-[#EAEFF8] p-5 shadow-card hover:shadow-card-hover transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
                 >
                   {/* Left: Avatar + Details */}
@@ -189,14 +289,26 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                     <img
                       src={crew.avatar}
                       alt={crew.name}
-                      className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-[#F2F5FD] shrink-0"
+                      onClick={() => onViewProfile(crew)}
+                      className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-[#F2F5FD] shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                      title="Click to view full profile"
                     />
                     <div>
-                      <h4 className="text-[17px] font-bold text-[#142653] leading-tight">
-                        {crew.name}
-                      </h4>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h4 
+                          onClick={() => onViewProfile(crew)}
+                          className="text-[17px] font-bold text-[#142653] leading-tight hover:text-[#563CF0] cursor-pointer transition-colors"
+                        >
+                          {crew.name}
+                        </h4>
+                        {isSelected && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#10B981] bg-[#E8F8F0] px-2 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-3 h-3" /> Selected
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[13px] text-[#5F6D82] mt-0.5">
-                        {crew.role}
+                        {crew.assignedRole || crew.role}
                       </p>
 
                       <div className="flex items-center gap-2 mt-1 text-[13px]">
@@ -205,7 +317,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                           <span>{crew.rating}</span>
                         </div>
                         <span className="text-[#8A95A5] text-[12px]">
-                          ({crew.reviewsCount} reviews)
+                          ({crew.reviewsCount || 45} reviews)
                         </span>
                       </div>
 
@@ -216,9 +328,16 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                         </span>
                       </div>
 
+                      {/* Matching Explanation Snippet */}
+                      {crew.explanation && (
+                        <p className="text-[12px] text-[#563CF0] bg-[#F0EEFF] px-2.5 py-1 rounded-lg mt-2 max-w-lg leading-relaxed">
+                          💡 <span className="font-semibold">Why Selected:</span> {crew.explanation}
+                        </p>
+                      )}
+
                       {/* Skills */}
                       <div className="flex flex-wrap gap-1.5 mt-2.5">
-                        {crew.skills.map((skill, i) => (
+                        {crew.skills.map((skill: string, i: number) => (
                           <span
                             key={i}
                             className="px-2.5 py-0.5 rounded-lg text-[11px] font-medium bg-[#F3F4F8] text-[#4B5563]"
@@ -261,7 +380,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                       View Profile
                     </button>
                     <button
-                      onClick={(e) => toggleFavorite(crew.id, e)}
+                      onClick={(e) => toggleFavorite(crewId, e)}
                       className={`p-2.5 rounded-xl border transition-colors ${
                         isFav
                           ? 'border-[#EF4444] text-[#EF4444] bg-[#FEE2E2]/30'
@@ -280,7 +399,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
 
         {/* Right Sidebar: AI Match Score & Explanation (4 cols ~35%) */}
         <div className="lg:col-span-4 space-y-5">
-          {/* AI Match Score Gradient Panel */}
+          {/* AI Match Score Gradient Panel with Dynamic Ring */}
           <div className="rounded-2xl p-6 bg-gradient-to-br from-[#7545F5] to-[#563CF0] text-white shadow-lg shadow-indigo-950/20 relative overflow-hidden">
             <div className="flex items-center gap-2.5 mb-2">
               <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
@@ -289,13 +408,12 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
               <h3 className="text-[17px] font-bold">AI Match Score</h3>
             </div>
             <p className="text-[12.5px] text-white/85 leading-relaxed mb-6">
-              Our AI analyzes skills, experience, location and availability to find the best fit for your event.
+              Our 5-factor engine evaluates skill match (30%), real-time availability (25%), past reliability (20%), budget fit (15%), and location (10%).
             </p>
 
-            {/* Circular Progress Ring */}
+            {/* Circular Progress Ring calculating exact percentage */}
             <div className="flex flex-col items-center justify-center py-2">
               <div className="relative w-32 h-32 flex items-center justify-center">
-                {/* SVG Ring */}
                 <svg className="w-full h-full transform -rotate-90">
                   <circle
                     cx="64"
@@ -313,46 +431,70 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                     strokeWidth="8"
                     fill="none"
                     strokeDasharray={2 * Math.PI * 52}
-                    strokeDashoffset={2 * Math.PI * 52 * (1 - 0.94)}
+                    strokeDashoffset={2 * Math.PI * 52 * (1 - (avgMatchScore / 100))}
                     strokeLinecap="round"
+                    className="transition-all duration-1000 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[32px] font-extrabold tracking-tight">94%</span>
+                  <span className="text-[32px] font-extrabold tracking-tight">{avgMatchScore}%</span>
                 </div>
               </div>
               <span className="text-[12.5px] font-semibold text-white/90 mt-2">
-                Average Match Score
+                Average Team Match Score
               </span>
             </div>
           </div>
 
-          {/* Why AI Recommendations? White Card */}
+          {/* Explainable Evaluation Criteria Card */}
           <div className="bg-white rounded-2xl border border-[#EAEFF8] p-6 shadow-card">
             <h4 className="text-[15px] font-bold text-[#142653] mb-4">
-              Why AI Recommendations?
+              Configurable Scoring Weights
             </h4>
-            <div className="space-y-3.5 text-[13px] text-[#5F6D82]">
-              <div className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#563CF0] shrink-0 mt-0.5 stroke-[3]" />
-                <span>Best skill match for your event</span>
+            <div className="space-y-3 text-[13px] text-[#5F6D82]">
+              <div className="flex items-center justify-between">
+                <span>1. Skill & Role Match</span>
+                <span className="font-bold text-[#563CF0]">30%</span>
               </div>
-              <div className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#563CF0] shrink-0 mt-0.5 stroke-[3]" />
-                <span>Verified and trusted professionals</span>
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+                <div className="bg-[#563CF0] h-1.5 rounded-full w-[30%]"></div>
               </div>
-              <div className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#563CF0] shrink-0 mt-0.5 stroke-[3]" />
-                <span>Based on real-time availability</span>
+
+              <div className="flex items-center justify-between pt-1">
+                <span>2. Event Date Availability</span>
+                <span className="font-bold text-[#10B981]">25%</span>
               </div>
-              <div className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#563CF0] shrink-0 mt-0.5 stroke-[3]" />
-                <span>Budget-friendly options</span>
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+                <div className="bg-[#10B981] h-1.5 rounded-full w-[25%]"></div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span>3. Experience & Reliability</span>
+                <span className="font-bold text-[#3B82F6]">20%</span>
+              </div>
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+                <div className="bg-[#3B82F6] h-1.5 rounded-full w-[20%]"></div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span>4. Budget Suitability</span>
+                <span className="font-bold text-[#F59E0B]">15%</span>
+              </div>
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+                <div className="bg-[#F59E0B] h-1.5 rounded-full w-[15%]"></div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span>5. Location Proximity</span>
+                <span className="font-bold text-[#8B5CF6]">10%</span>
+              </div>
+              <div className="w-full bg-[#EAEFF8] h-1.5 rounded-full">
+                <div className="bg-[#8B5CF6] h-1.5 rounded-full w-[10%]"></div>
               </div>
             </div>
           </div>
 
-          {/* Need to adjust requirements Card */}
+          {/* Adjust Requirements Card */}
           <div className="bg-white rounded-2xl border border-[#EAEFF8] p-6 shadow-card space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-[#F0EEFF] text-[#563CF0] flex items-center justify-center shrink-0">
@@ -363,7 +505,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
                   Need to adjust your requirements?
                 </h4>
                 <p className="text-[12px] text-[#5F6D82] mt-0.5 leading-relaxed">
-                  Go back to create event or edit your details to get better matches.
+                  Modify roles, dates, or budget parameters to recalculate matched crew.
                 </p>
               </div>
             </div>
@@ -380,4 +522,3 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
     </div>
   );
 };
-

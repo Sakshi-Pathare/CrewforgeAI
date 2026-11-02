@@ -7,20 +7,23 @@ import {
   ClipboardList, 
   RefreshCw,
   Calendar,
-  UserCheck
+  User,
+  LogIn
 } from 'lucide-react';
-import { PageType } from '../types';
+import { PageType, User as UserType } from '../types';
 
 interface SidebarProps {
   currentPage: PageType;
   onNavigate: (page: PageType) => void;
   pendingCount?: number;
+  currentUser?: UserType | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
   currentPage, 
   onNavigate,
-  pendingCount = 4 
+  pendingCount = 4,
+  currentUser
 }) => {
   const navItems: { id: PageType; label: string; icon: React.FC<{ className?: string }> }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -30,6 +33,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'assignments', label: 'Assignments', icon: ClipboardList },
     { id: 'backup-crew', label: 'Backup Crew', icon: RefreshCw },
   ];
+
+  const profilePageId: PageType = currentUser 
+    ? (currentUser.role === 'Freelancer' ? 'freelancer-profile' : 'organizer-profile')
+    : 'login';
+  const profileLabel = currentUser 
+    ? (currentUser.role === 'Freelancer' ? 'My Profile' : 'Organization') 
+    : 'Sign In';
+  const isProfileActive = currentPage === 'freelancer-profile' || currentPage === 'organizer-profile' || (currentPage === 'login' && !currentUser);
 
   return (
     <aside className="w-[294px] min-w-[294px] h-screen bg-[#101D4B] text-white flex flex-col justify-between select-none z-30 shrink-0 border-r border-[#1B2A5E]/40">
@@ -81,6 +92,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             );
           })}
+
+          {/* Profile / Account Nav Item */}
+          <button
+            onClick={() => onNavigate(profilePageId)}
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-medium text-[14.5px] transition-all duration-200 text-left ${
+              isProfileActive
+                ? 'bg-[#563CF0] text-white shadow-md shadow-indigo-950/40 font-semibold'
+                : 'text-[#8E9BB5] hover:bg-[#182759] hover:text-white'
+            }`}
+          >
+            {currentUser ? (
+              <User className={`w-5 h-5 shrink-0 ${isProfileActive ? 'text-white' : 'text-[#8E9BB5]'}`} />
+            ) : (
+              <LogIn className={`w-5 h-5 shrink-0 ${isProfileActive ? 'text-white' : 'text-[#8E9BB5]'}`} />
+            )}
+            <span className="flex-1">{profileLabel}</span>
+            {currentUser && (
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#1D2F6B] text-[#A5B4FB]">
+                {currentUser.role}
+              </span>
+            )}
+          </button>
         </nav>
       </div>
 
@@ -127,4 +160,3 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </aside>
   );
 };
-

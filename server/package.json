@@ -1,0 +1,27 @@
+{
+  "name": "crewforge-ai-server",
+  "version": "1.0.0",
+  "description": "Backend API for Crew Forge - AI-Powered Crew Assembly Platform",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "seed": "node seed/seed.js",
+    "test:auth": "node test/test-auth-rbac.js",
+    "test:matching": "node test/test-matching-engine.js",
+    "test:phase4": "node test/test-phase4.js",
+    "test:profile": "node test/test-auth-profile.js",
+    "test:events": "node test/test-event-management.js",
+    "test:health": "node test/test-health-status.js",
+    "test": "node test/test-auth-rbac.js && node test/test-matching-engine.js && node test/test-phase4.js && node test/test-auth-profile.js && node test/test-event-management.js && node test/test-health-status.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.0"
+  }
+}

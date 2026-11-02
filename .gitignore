@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+server/node_modules/
 /.pnp
 .pnp.js
 
@@ -12,6 +13,9 @@ dist-ssr/
 .env
 .env.*
 !.env.example
+server/.env
+server/.env.*
+!server/.env.example
 
 # Logs
 npm-debug.log*
@@ -30,4 +34,3 @@ lerna-debug.log*
 *.sw?
 .DS_Store
 Thumbs.db
-
