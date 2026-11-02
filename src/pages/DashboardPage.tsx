@@ -195,7 +195,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto shrink-0">
             {currentUser?.role !== 'Freelancer' && (
               <button
                 onClick={() => onNavigate('create-event')}

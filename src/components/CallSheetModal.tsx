@@ -136,7 +136,7 @@ COMMUNICATIONS:
             <h4 className="text-[13px] font-bold text-[#8A95A5] uppercase tracking-wider mb-2.5">
               Crew Personnel & Status
             </h4>
-            <div className="border border-[#EAEFF8] rounded-2xl overflow-hidden">
+            <div className="border border-[#EAEFF8] rounded-2xl overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead className="bg-[#F8FAFD] border-b border-[#EAEFF8] text-[11.5px] font-bold text-[#8A95A5] uppercase">
                   <tr>

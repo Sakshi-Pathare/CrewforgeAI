@@ -44,6 +44,7 @@ export const App: React.FC = () => {
 
   // Navigation State
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Search State (shared between TopNav and FindCrewPage)
   const [searchQuery, setSearchQuery] = useState('');
@@ -239,19 +240,22 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F2F5FD]">
-      {/* 1. Left Fixed Sidebar */}
+      {/* 1. Left Fixed Sidebar (Desktop Fixed, Mobile Slide-Over Drawer) */}
       <Sidebar
         currentPage={currentPage}
         onNavigate={(page) => {
           if (page === 'create-event') setIsEditingEvent(false);
           setCurrentPage(page);
+          setIsMobileMenuOpen(false);
         }}
         pendingCount={assignments.length}
         currentUser={currentUser}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Area: TopNav + Scrollable Content Canvas */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         {/* 2. Top Navigation Bar */}
         <TopNav
           currentPage={currentPage}
@@ -263,10 +267,11 @@ export const App: React.FC = () => {
           }}
           currentUser={currentUser}
           onLogout={handleLogout}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
 
         {/* 3. Main Scrollable Canvas */}
-        <main className="flex-1 overflow-y-auto px-9 py-7 scroll-smooth">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-9 py-5 sm:py-7 scroll-smooth">
           {/* User Registration Screen */}
           {currentPage === 'register' && (
             <RegisterPage

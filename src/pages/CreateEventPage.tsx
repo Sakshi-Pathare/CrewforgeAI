@@ -239,7 +239,7 @@ export const CreateEventPage: React.FC<CreateEventPageProps> = ({
   return (
     <div className="max-w-[1240px] mx-auto pb-16 animate-in fade-in duration-150 space-y-6">
       {/* Top Header & Breadcrumbs */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
         <button
           onClick={() => onNavigate('dashboard')}
           className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#563CF0] hover:text-[#472FD6] transition-colors"
@@ -248,7 +248,7 @@ export const CreateEventPage: React.FC<CreateEventPageProps> = ({
           <span>Back to Dashboard</span>
         </button>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           <button
             type="button"
             disabled={isSaving}

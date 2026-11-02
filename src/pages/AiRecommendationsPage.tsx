@@ -179,7 +179,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto self-start sm:self-auto">
           {/* Re-calculate Trigger */}
           <button
             onClick={handleTriggerRescan}
@@ -279,7 +279,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
         </div>
 
         {/* Right: Total Crew Needed & Budget Status */}
-        <div className="flex items-center gap-8 shrink-0">
+        <div className="flex items-center flex-wrap gap-6 sm:gap-8 shrink-0">
           <div>
             <div className="text-[11.5px] font-semibold text-[#8A95A5] uppercase tracking-wide">
               Total Crew Needed

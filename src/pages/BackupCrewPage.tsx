@@ -259,7 +259,7 @@ export const BackupCrewPage: React.FC<BackupCrewPageProps> = ({
               </div>
 
               {/* Primary vs Backup comparison */}
-              <div className="py-4 grid grid-cols-2 gap-4 items-center">
+              <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 items-center">
                 {/* Primary Crew */}
                 <div 
                   onClick={() => handleOpenProfileByName(item.primaryName)}

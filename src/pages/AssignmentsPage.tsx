@@ -83,7 +83,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto self-start sm:self-auto">
           <button
             onClick={() => setShowCallSheet(true)}
             className="px-4 py-2.5 rounded-xl border border-[#563CF0] text-[#563CF0] hover:bg-[#F0EEFF] text-[13.5px] font-semibold transition-all flex items-center gap-2 btn-press"

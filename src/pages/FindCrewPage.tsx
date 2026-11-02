@@ -44,6 +44,7 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
   const [maxPrice, setMaxPrice] = useState(10000);
   const [ratingFilter, setRatingFilter] = useState(false);
   const [sortBy, setSortBy] = useState('Best Match');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const handleReset = () => {
     setSearchName('');
@@ -106,7 +107,7 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
         </div>
 
         {/* AI Recommendations Banner Pill */}
-        <div className="bg-[#EDE9FE] border border-[#DDD6FE] rounded-2xl px-6 py-4 flex items-center justify-between gap-6 shadow-sm">
+        <div className="bg-[#EDE9FE] border border-[#DDD6FE] rounded-2xl p-4 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 shadow-sm">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-[#563CF0] text-white flex items-center justify-center shrink-0 shadow-sm">
               <Sparkles className="w-5 h-5 text-white" />
@@ -122,7 +123,7 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
           </div>
           <button
             onClick={() => onNavigate('ai-recommendations')}
-            className="px-5 py-2.5 rounded-xl bg-[#563CF0] hover:bg-[#472FD6] text-white text-[13.5px] font-semibold flex items-center gap-2 shadow-btn shrink-0 transition-all"
+            className="px-5 py-2.5 rounded-xl bg-[#563CF0] hover:bg-[#472FD6] text-white text-[13.5px] font-semibold flex items-center justify-center gap-2 shadow-btn shrink-0 transition-all btn-press w-full sm:w-auto"
           >
             <span>Get AI Suggestions</span>
             <ArrowRight className="w-4 h-4" />
@@ -130,10 +131,27 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
         </div>
       </div>
 
+      {/* Mobile Filter Toggle Button */}
+      <div className="lg:hidden flex items-center justify-between bg-white p-3.5 rounded-2xl border border-[#EAEFF8] shadow-sm mb-4">
+        <button
+          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          className="flex items-center gap-2 text-[13.5px] font-bold text-[#563CF0] btn-press"
+        >
+          <Filter className="w-4 h-4" />
+          <span>{showMobileFilters ? 'Hide Filters' : 'Filter Crew Members'}</span>
+          {(selectedRole !== 'All' || maxPrice < 10000 || ratingFilter || searchName) && (
+            <span className="w-2 h-2 rounded-full bg-[#563CF0] animate-live-pulse" />
+          )}
+        </button>
+        <span className="text-[12px] font-semibold text-[#8A95A5]">
+          {sortedCrew.length} crew available
+        </span>
+      </div>
+
       {/* Main Content Layout: Filters + Crew Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Filter Column (3.5 cols on desktop ~280px) */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-[#EAEFF8] p-6 shadow-card space-y-6">
+        <div className={`lg:col-span-3 bg-white rounded-2xl border border-[#EAEFF8] p-5 sm:p-6 shadow-card space-y-6 ${showMobileFilters ? 'block mb-4 animate-fade-in-up' : 'hidden lg:block'}`}>
           {/* Filter Header */}
           <div className="flex items-center justify-between pb-2 border-b border-[#F0F3F9]">
             <h2 className="text-[16px] font-bold text-[#142653]">Filters</h2>
