@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, 
   HelpCircle, 
@@ -13,9 +13,14 @@ import {
   ShieldCheck,
   Check,
   Menu,
-  X
+  X,
+  Users,
+  Calendar as CalendarIcon,
+  Star,
+  ArrowRight,
+  ClipboardList
 } from 'lucide-react';
-import { PageType, User as UserType } from '../types';
+import { PageType, User as UserType, Freelancer, EventData, CrewAssignment } from '../types';
 import {
   getNotifications,
   markNotificationAsRead,
@@ -31,6 +36,11 @@ interface TopNavProps {
   currentUser?: UserType | null;
   onLogout?: () => void;
   onOpenMobileMenu?: () => void;
+  freelancers?: Freelancer[];
+  events?: EventData[];
+  assignments?: CrewAssignment[];
+  onViewFreelancer?: (freelancer: Freelancer) => void;
+  onSelectEvent?: (event: EventData) => void;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({
@@ -40,13 +50,21 @@ export const TopNav: React.FC<TopNavProps> = ({
   onNavigate,
   currentUser,
   onLogout,
-  onOpenMobileMenu
+  onOpenMobileMenu,
+  freelancers = [],
+  events = [],
+  assignments = [],
+  onViewFreelancer,
+  onSelectEvent
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifs = async () => {
     try {
@@ -61,6 +79,63 @@ export const TopNav: React.FC<TopNavProps> = ({
   useEffect(() => {
     fetchNotifs();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        searchContainerRef.current && 
+        !searchContainerRef.current.contains(target) &&
+        (!mobileSearchRef.current || !mobileSearchRef.current.contains(target))
+      ) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const queryTrimmed = searchQuery.trim().toLowerCase();
+
+  const matchingFreelancers = queryTrimmed
+    ? freelancers.filter(f =>
+        f.name.toLowerCase().includes(queryTrimmed) ||
+        f.role.toLowerCase().includes(queryTrimmed) ||
+        (f.skills && f.skills.some(s => s.toLowerCase().includes(queryTrimmed))) ||
+        (f.location && f.location.toLowerCase().includes(queryTrimmed))
+      ).slice(0, 4)
+    : [];
+
+  const matchingEvents = queryTrimmed
+    ? events.filter(e =>
+        e.name.toLowerCase().includes(queryTrimmed) ||
+        e.type.toLowerCase().includes(queryTrimmed) ||
+        (e.location && e.location.toLowerCase().includes(queryTrimmed))
+      ).slice(0, 2)
+    : [];
+
+  const matchingAssignments = queryTrimmed
+    ? assignments.filter(a =>
+        a.freelancerName.toLowerCase().includes(queryTrimmed) ||
+        a.role.toLowerCase().includes(queryTrimmed) ||
+        (a.backupAssigned && a.backupAssigned.toLowerCase().includes(queryTrimmed))
+      ).slice(0, 2)
+    : [];
+
+  const totalMatches = matchingFreelancers.length + matchingEvents.length + matchingAssignments.length;
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setIsSearchFocused(false);
+      setShowMobileSearch(false);
+      if (onNavigate) {
+        onNavigate('find-crew');
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchFocused(false);
+    }
+  };
 
   const handleMarkOne = async (id: string) => {
     await markNotificationAsRead(id);
@@ -104,6 +179,182 @@ export const TopNav: React.FC<TopNavProps> = ({
     }
   };
 
+  const renderSearchDropdown = () => {
+    if (!isSearchFocused || !queryTrimmed) return null;
+
+    return (
+      <div className="absolute top-[calc(100%+8px)] left-0 w-full sm:w-[460px] bg-white rounded-2xl shadow-2xl border border-[#EAEFF8] overflow-hidden z-50 animate-fade-in-up">
+        {/* Header */}
+        <div className="px-4 py-2.5 bg-[#F8FAFD] border-b border-[#F0F3F9] flex items-center justify-between">
+          <span className="text-[11px] font-bold text-[#8A95A5] uppercase tracking-wider">
+            Results for "{searchQuery}"
+          </span>
+          <span className="text-[11px] text-[#563CF0] font-semibold">
+            Press Enter for all
+          </span>
+        </div>
+
+        <div className="max-h-[360px] overflow-y-auto divide-y divide-[#F0F3F9]">
+          {/* 1. Crew Talent */}
+          {matchingFreelancers.length > 0 && (
+            <div className="p-2">
+              <div className="text-[10.5px] font-bold text-[#8A95A5] uppercase px-2.5 py-1 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#563CF0]" />
+                Crew Talent ({matchingFreelancers.length})
+              </div>
+              <div className="space-y-1">
+                {matchingFreelancers.map((crew) => (
+                  <div
+                    key={crew.id}
+                    onMouseDown={() => {
+                      if (onViewFreelancer) {
+                        onViewFreelancer(crew);
+                      } else if (onNavigate) {
+                        onNavigate('find-crew');
+                      }
+                      setIsSearchFocused(false);
+                      setShowMobileSearch(false);
+                    }}
+                    className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F0EEFF]/60 cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={crew.avatar}
+                        alt={crew.name}
+                        className="w-9 h-9 rounded-xl object-cover bg-gray-100 ring-1 ring-gray-200 shrink-0"
+                      />
+                      <div className="truncate">
+                        <div className="text-[13px] font-bold text-[#142653] group-hover:text-[#563CF0] transition-colors truncate">
+                          {crew.name}
+                        </div>
+                        <div className="text-[11.5px] text-[#5F6D82] truncate">
+                          {crew.role} • ₹{crew.pricePerEvent.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-[12px] font-bold text-[#F59E0B] shrink-0 pl-2">
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      <span>{crew.rating}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. Events */}
+          {matchingEvents.length > 0 && (
+            <div className="p-2">
+              <div className="text-[10.5px] font-bold text-[#8A95A5] uppercase px-2.5 py-1 flex items-center gap-1.5">
+                <CalendarIcon className="w-3.5 h-3.5 text-[#10B981]" />
+                Events ({matchingEvents.length})
+              </div>
+              <div className="space-y-1">
+                {matchingEvents.map((evt) => (
+                  <div
+                    key={evt.id}
+                    onMouseDown={() => {
+                      if (onSelectEvent) {
+                        onSelectEvent(evt);
+                      } else if (onNavigate) {
+                        onNavigate('dashboard');
+                      }
+                      setIsSearchFocused(false);
+                      setShowMobileSearch(false);
+                    }}
+                    className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F0EEFF]/60 cursor-pointer transition-colors group"
+                  >
+                    <div className="truncate min-w-0">
+                      <div className="text-[13px] font-bold text-[#142653] group-hover:text-[#563CF0] transition-colors truncate">
+                        {evt.name}
+                      </div>
+                      <div className="text-[11.5px] text-[#5F6D82] truncate">
+                        {evt.date} • {evt.location}
+                      </div>
+                    </div>
+                    <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-[#E8F8F0] text-[#10B981] shrink-0 ml-2">
+                      {evt.type}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. Assignments */}
+          {matchingAssignments.length > 0 && (
+            <div className="p-2">
+              <div className="text-[10.5px] font-bold text-[#8A95A5] uppercase px-2.5 py-1 flex items-center gap-1.5">
+                <ClipboardList className="w-3.5 h-3.5 text-[#563CF0]" />
+                Assignments ({matchingAssignments.length})
+              </div>
+              <div className="space-y-1">
+                {matchingAssignments.map((asg) => (
+                  <div
+                    key={asg.id}
+                    onMouseDown={() => {
+                      if (onNavigate) onNavigate('assignments');
+                      setIsSearchFocused(false);
+                      setShowMobileSearch(false);
+                    }}
+                    className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F0EEFF]/60 cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-2.5 truncate min-w-0">
+                      <img
+                        src={asg.avatar}
+                        alt={asg.freelancerName}
+                        className="w-7 h-7 rounded-lg object-cover bg-gray-100 shrink-0"
+                      />
+                      <div className="truncate">
+                        <div className="text-[13px] font-bold text-[#142653] group-hover:text-[#563CF0] truncate">
+                          {asg.freelancerName}
+                        </div>
+                        <div className="text-[11.5px] text-[#5F6D82] truncate">
+                          {asg.role} • Standby: {asg.backupAssigned || 'Auto'}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-[#F0EEFF] text-[#563CF0] shrink-0 ml-2">
+                      {asg.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No matches */}
+          {totalMatches === 0 && (
+            <div className="p-6 text-center">
+              <div className="w-10 h-10 rounded-full bg-[#F3F5FA] flex items-center justify-center mx-auto text-[#8A95A5] mb-2">
+                <Search className="w-5 h-5" />
+              </div>
+              <p className="text-[13.5px] font-bold text-[#142653]">No exact matches found</p>
+              <p className="text-[12px] text-[#8A95A5] mt-0.5">
+                Try searching for names, roles like "Photographer", or "Audio"
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Jump Button */}
+        <div
+          onMouseDown={() => {
+            if (onNavigate) onNavigate('find-crew');
+            setIsSearchFocused(false);
+            setShowMobileSearch(false);
+          }}
+          className="p-3 bg-[#F8FAFD] hover:bg-[#F0EEFF] text-center cursor-pointer transition-colors border-t border-[#F0F3F9]"
+        >
+          <span className="text-[12.5px] font-bold text-[#563CF0] flex items-center justify-center gap-1.5">
+            <span>Explore all matching crew in Find Crew</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <header className="h-[74px] bg-white border-b border-[#EAEFF8] px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shrink-0">
       {/* Left: Mobile Hamburger & Search Input */}
@@ -118,30 +369,42 @@ export const TopNav: React.FC<TopNavProps> = ({
         </button>
 
         {/* Desktop & Tablet Search Bar */}
-        <div className="relative flex-1 hidden sm:block max-w-[440px]">
+        <div ref={searchContainerRef} className="relative flex-1 hidden sm:block max-w-[440px]">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-[#8A95A5]" />
           </div>
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onChange={(e) => {
+              onSearchChange(e.target.value);
+              setIsSearchFocused(true);
+            }}
+            onKeyDown={handleSearchKeyDown}
             placeholder={getSearchPlaceholder()}
-            className="w-full pl-11 pr-4 py-2.5 bg-[#F3F5FA] hover:bg-[#EDF1F8] focus:bg-white text-[13.5px] text-[#142653] placeholder-[#8A95A5] rounded-full border border-transparent focus:border-[#563CF0] focus:ring-2 focus:ring-[#563CF0]/10 transition-all outline-none"
+            className="w-full pl-11 pr-8 py-2.5 bg-[#F3F5FA] hover:bg-[#EDF1F8] focus:bg-white text-[13.5px] text-[#142653] placeholder-[#8A95A5] rounded-full border border-transparent focus:border-[#563CF0] focus:ring-2 focus:ring-[#563CF0]/10 transition-all outline-none"
           />
           {searchQuery && (
             <button 
               onClick={() => onSearchChange('')}
               className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs text-gray-400 hover:text-gray-600"
+              title="Clear search"
             >
               ✕
             </button>
           )}
+
+          {/* Desktop Search Dropdown */}
+          {renderSearchDropdown()}
         </div>
 
         {/* Mobile Search Toggle Button */}
         <button
-          onClick={() => setShowMobileSearch(!showMobileSearch)}
+          onClick={() => {
+            setShowMobileSearch(!showMobileSearch);
+            setIsSearchFocused(true);
+          }}
           className="sm:hidden p-2 rounded-xl text-[#5F6D82] hover:bg-[#F3F5FA] hover:text-[#142653] transition-colors"
           title="Search"
         >
@@ -151,7 +414,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
       {/* Mobile Expandable Search Bar Drawer */}
       {showMobileSearch && (
-        <div className="absolute top-[74px] left-0 right-0 bg-white border-b border-[#EAEFF8] p-3 shadow-md sm:hidden z-40 animate-fade-in-up">
+        <div ref={mobileSearchRef} className="absolute top-[74px] left-0 right-0 bg-white border-b border-[#EAEFF8] p-3 shadow-md sm:hidden z-40 animate-fade-in-up">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-[#8A95A5]" />
@@ -160,16 +423,27 @@ export const TopNav: React.FC<TopNavProps> = ({
               type="text"
               autoFocus
               value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onChange={(e) => {
+                onSearchChange(e.target.value);
+                setIsSearchFocused(true);
+              }}
+              onKeyDown={handleSearchKeyDown}
               placeholder={getSearchPlaceholder()}
               className="w-full pl-10 pr-9 py-2 bg-[#F3F5FA] text-[13.5px] text-[#142653] rounded-xl border border-transparent focus:border-[#563CF0] outline-none"
             />
             <button
-              onClick={() => setShowMobileSearch(false)}
+              onClick={() => {
+                setShowMobileSearch(false);
+                setIsSearchFocused(false);
+              }}
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
             >
               <X className="w-4 h-4" />
             </button>
+
+            {/* Mobile Search Dropdown */}
+            {renderSearchDropdown()}
           </div>
         </div>
       )}

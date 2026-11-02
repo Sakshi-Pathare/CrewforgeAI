@@ -33,6 +33,7 @@ interface AssignmentsPageProps {
   onViewProfileByName?: (name: string) => void;
   currentUser?: User | null;
   eventData?: EventData;
+  searchQuery?: string;
   onShowToast?: (title: string, message?: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
 }
 
@@ -51,6 +52,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
     crewMembersNeeded: 8,
     requiredRoles: ['Photographer', 'Sound Engineer', 'Anchor', 'Security']
   },
+  searchQuery = '',
   onShowToast,
 }) => {
   const [assignmentList, setAssignmentList] = useState<CrewAssignment[]>(assignments);
@@ -93,7 +95,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
           type: 'error',
           text: errorMsg,
         });
-        onShowToast?.('Approval Failed', errorMsg, 'error');
+        onShowToast?.('Approval Failed', errorMsg, 'warning');
       }
     } catch (err: any) {
       const errorMsg = err.message || 'Error connecting to assignment service.';
@@ -101,7 +103,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
         type: 'error',
         text: errorMsg,
       });
-      onShowToast?.('Approval Error', errorMsg, 'error');
+      onShowToast?.('Approval Error', errorMsg, 'warning');
     } finally {
       setProcessingId(null);
     }
@@ -126,7 +128,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
           type: 'error',
           text: errorMsg,
         });
-        onShowToast?.('Decline Failed', errorMsg, 'error');
+        onShowToast?.('Decline Failed', errorMsg, 'warning');
       }
     } catch (err: any) {
       const errorMsg = err.message || 'Error connecting to assignment service.';
@@ -134,7 +136,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
         type: 'error',
         text: errorMsg,
       });
-      onShowToast?.('Decline Error', errorMsg, 'error');
+      onShowToast?.('Decline Error', errorMsg, 'warning');
     } finally {
       setProcessingId(null);
     }
@@ -144,8 +146,17 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
     ? assignmentList 
     : assignmentList.filter(a => a.status === filterStatus);
 
+  const searched = filtered.filter(a => {
+    if (!searchQuery || !searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      a.freelancerName.toLowerCase().includes(q) ||
+      a.role.toLowerCase().includes(q) ||
+      (a.backupAssigned && a.backupAssigned.toLowerCase().includes(q))
+    );
+  });
+
   const totalCommitted = assignmentList.reduce((acc, a) => acc + a.fee, 0);
-  const pendingCount = assignmentList.filter(a => a.status === 'Pending').length;
 
   return (
     <div className="max-w-[1360px] mx-auto pb-12 animate-fade-in-up space-y-7">
@@ -279,20 +290,22 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
           </div>
 
           <div className="text-[13px] font-medium text-[#5F6D82]">
-            Showing <strong className="text-[#142653]">{filtered.length}</strong> roster records
+            Showing <strong className="text-[#142653]">{searched.length}</strong> roster records
           </div>
         </div>
 
         {/* Assignments Table / List */}
         <div className="divide-y divide-[#EAEFF8]">
-          {filtered.length === 0 ? (
+          {searched.length === 0 ? (
             <div className="py-16 text-center text-[#8A95A5]">
               <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-30 text-[#563CF0]" />
               <div className="text-[16px] font-bold text-[#142653]">No crew members found</div>
-              <div className="text-[13px] text-[#5F6D82] mt-1">Try selecting a different filter status above.</div>
+              <div className="text-[13px] text-[#5F6D82] mt-1">
+                {searchQuery ? `No crew members or roles matched "${searchQuery}".` : 'Try selecting a different filter status above.'}
+              </div>
             </div>
           ) : (
-            filtered.map((item) => (
+            searched.map((item) => (
               <div 
                 key={item.id} 
                 className="p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5 hover:bg-[#FAFBFD] transition-colors"

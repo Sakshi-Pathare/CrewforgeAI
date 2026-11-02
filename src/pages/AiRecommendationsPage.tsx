@@ -29,6 +29,7 @@ interface AiRecommendationsPageProps {
   onViewProfile: (freelancer: Freelancer) => void;
   onSelectFreelancer: (freelancer: Freelancer) => void;
   selectedIds: string[];
+  searchQuery?: string;
   onShowToast?: (title: string, message?: string, type?: 'success' | 'info' | 'warning') => void;
 }
 
@@ -39,6 +40,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
   onViewProfile,
   onSelectFreelancer,
   selectedIds,
+  searchQuery = '',
   onShowToast,
 }) => {
   const [favorites, setFavorites] = useState<{ [id: string]: boolean }>({});
@@ -138,7 +140,19 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
     ? candidatesList
     : candidatesList.filter((c: any) => (c.assignedRole || c.role) === activeRoleFilter);
 
-  const sortedRecommendations = [...roleFilteredList].sort((a: any, b: any) => {
+  const queryFilteredList = roleFilteredList.filter((c: any) => {
+    if (!searchQuery || !searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.role && c.role.toLowerCase().includes(q)) ||
+      (c.assignedRole && c.assignedRole.toLowerCase().includes(q)) ||
+      (c.skills && c.skills.some((s: string) => s.toLowerCase().includes(q))) ||
+      (c.location && c.location.toLowerCase().includes(q))
+    );
+  });
+
+  const sortedRecommendations = [...queryFilteredList].sort((a: any, b: any) => {
     if (sortBy === 'Match Score') return (b.matchScore || 90) - (a.matchScore || 90);
     if (sortBy === 'Price: Low to High') return a.pricePerEvent - b.pricePerEvent;
     return b.rating - a.rating;
