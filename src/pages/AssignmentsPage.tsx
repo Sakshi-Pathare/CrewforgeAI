@@ -27,6 +27,7 @@ interface AssignmentsPageProps {
   onNavigate: (page: PageType) => void;
   onUpdateStatus?: (id: string, newStatus: CrewAssignment['status']) => void;
   eventData?: EventData;
+  searchQuery?: string;
   onShowToast?: (title: string, message?: string, type?: 'success' | 'info' | 'warning') => void;
 }
 
@@ -45,6 +46,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
     requiredRoles: ['Photographer', 'Sound Engineer', 'Anchor', 'Security']
   },
   onShowToast,
+  searchQuery = '',
 }) => {
   const [assignmentList, setAssignmentList] = useState<CrewAssignment[]>(assignments);
   const [filterStatus, setFilterStatus] = useState<string>('All');
@@ -68,6 +70,16 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
   const filtered = filterStatus === 'All' 
     ? assignmentList 
     : assignmentList.filter(a => a.status === filterStatus);
+
+  const searched = filtered.filter(a => {
+    if (!searchQuery || !searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      a.freelancerName.toLowerCase().includes(q) ||
+      a.role.toLowerCase().includes(q) ||
+      (a.backupAssigned && a.backupAssigned.toLowerCase().includes(q))
+    );
+  });
 
   const totalCommitted = assignmentList.reduce((acc, a) => acc + a.fee, 0);
 
@@ -178,7 +190,15 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
 
         {/* List Items */}
         <div className="divide-y divide-[#F0F3F9]">
-          {filtered.map((item) => (
+          {searched.length === 0 ? (
+            <div className="p-10 text-center text-[#5F6D82]">
+              <p className="text-[14px] font-semibold text-[#142653]">No assignments found</p>
+              <p className="text-[12.5px] text-[#8A95A5] mt-1">
+                {searchQuery ? `No crew members or roles matched "${searchQuery}".` : 'No assignments match the selected status filter.'}
+              </p>
+            </div>
+          ) : (
+            searched.map((item) => (
             <div
               key={item.id}
               className="p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 hover:bg-[#FBFDFF] transition-all"
@@ -266,7 +286,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
                 </button>
               </div>
             </div>
-          ))}
+          )))}
         </div>
       </div>
 

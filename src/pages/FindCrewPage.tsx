@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Sparkles, 
@@ -19,6 +19,7 @@ interface FindCrewPageProps {
   onViewProfile: (freelancer: Freelancer) => void;
   selectedIds: string[];
   searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export const FindCrewPage: React.FC<FindCrewPageProps> = ({
@@ -28,9 +29,15 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
   onViewProfile,
   selectedIds,
   searchQuery = '',
+  onSearchChange,
 }) => {
   // Filter States
-  const [searchName, setSearchName] = useState('');
+  const [searchName, setSearchName] = useState(searchQuery || '');
+
+  // Sync search input with global searchQuery from TopNav
+  useEffect(() => {
+    setSearchName(searchQuery || '');
+  }, [searchQuery]);
   const [selectedRole, setSelectedRole] = useState('All');
   const [experienceLevels, setExperienceLevels] = useState<{ [key: string]: boolean }>({
     beginner: false,
@@ -48,6 +55,7 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
 
   const handleReset = () => {
     setSearchName('');
+    onSearchChange?.('');
     setSelectedRole('All');
     setExperienceLevels({ beginner: false, intermediate: false, expert: false });
     setAvailability({ onDate: true, now: false });
@@ -64,7 +72,9 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
       const matchName = crew.name.toLowerCase().includes(activeSearch);
       const matchSkill = crew.skills.some((s) => s.toLowerCase().includes(activeSearch));
       const matchRole = crew.role.toLowerCase().includes(activeSearch);
-      if (!matchName && !matchSkill && !matchRole) return false;
+      const matchLocation = crew.location ? crew.location.toLowerCase().includes(activeSearch) : false;
+      const matchBio = crew.bio ? crew.bio.toLowerCase().includes(activeSearch) : false;
+      if (!matchName && !matchSkill && !matchRole && !matchLocation && !matchBio) return false;
     }
 
     // Role
@@ -175,7 +185,10 @@ export const FindCrewPage: React.FC<FindCrewPageProps> = ({
               <input
                 type="text"
                 value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
+                onChange={(e) => {
+                  setSearchName(e.target.value);
+                  onSearchChange?.(e.target.value);
+                }}
                 placeholder="Search by name or skill..."
                 className="w-full pl-10 pr-3 py-2.5 bg-white text-[13px] text-[#142653] border border-[#DFE5F2] rounded-xl focus:outline-none focus:border-[#563CF0] focus:ring-1 focus:ring-[#563CF0]"
               />

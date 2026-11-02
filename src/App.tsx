@@ -347,6 +347,11 @@ export const App: React.FC = () => {
           currentUser={currentUser}
           onLogout={handleLogout}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+          freelancers={freelancers}
+          events={eventsList}
+          assignments={assignments}
+          onViewFreelancer={(f) => setViewingFreelancer(f)}
+          onSelectEvent={(evt) => setSelectedEventModal(evt)}
         />
 
         {/* 3. Main Scrollable Canvas */}
@@ -420,6 +425,7 @@ export const App: React.FC = () => {
               onViewProfile={setViewingFreelancer}
               selectedIds={selectedIds}
               searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
             />
           )}
 
@@ -432,6 +438,7 @@ export const App: React.FC = () => {
               onViewProfile={setViewingFreelancer}
               onSelectFreelancer={handleSelectFreelancer}
               selectedIds={selectedIds}
+              searchQuery={searchQuery}
               onShowToast={addToast}
             />
           )}
@@ -443,6 +450,7 @@ export const App: React.FC = () => {
               onNavigate={setCurrentPage}
               onUpdateStatus={handleUpdateAssignmentStatus}
               eventData={eventData}
+              searchQuery={searchQuery}
               onShowToast={addToast}
             />
           )}
