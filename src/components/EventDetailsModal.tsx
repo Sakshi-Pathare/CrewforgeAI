@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Calendar as CalendarIcon, 
@@ -15,14 +15,20 @@ import {
   Send,
   Eye,
   Globe,
-  Tag
+  Tag,
+  Loader2,
+  Check,
+  UserCheck
 } from 'lucide-react';
 import { EventData, User, CrewAssignment } from '../types';
 import { 
   updateEventStatus, 
   publishEvent, 
   deleteEvent, 
-  applyForEvent 
+  applyForEvent,
+  getAssignments,
+  approveAssignment,
+  declineAssignment
 } from '../services/api';
 
 interface EventDetailsModalProps {
@@ -51,6 +57,72 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Event Roster & Applications State
+  const [eventAssignments, setEventAssignments] = useState<CrewAssignment[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const eventId = event?.id || event?._id;
+    if (!eventId) return;
+
+    let isMounted = true;
+    setLoadingAssignments(true);
+    getAssignments(eventId)
+      .then((data) => {
+        if (isMounted) setEventAssignments(data || []);
+      })
+      .catch(() => {
+        if (isMounted) setEventAssignments([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingAssignments(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [event]);
+
+  const handleApproveApplicant = async (asgId: string) => {
+    setMessage(null);
+    setApprovingId(asgId);
+    try {
+      const res = await approveAssignment(asgId);
+      if (res.success) {
+        setMessage({ type: 'success', text: res.message || 'Application approved! Crew member confirmed in MongoDB.' });
+        setEventAssignments(prev =>
+          prev.map(a => (a.id === asgId ? { ...a, status: 'Confirmed' } : a))
+        );
+      } else {
+        setMessage({ type: 'error', text: res.message || 'Failed to approve application.' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to communicate with server.' });
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleDeclineApplicant = async (asgId: string) => {
+    setMessage(null);
+    setDecliningId(asgId);
+    try {
+      const res = await declineAssignment(asgId);
+      if (res.success) {
+        setMessage({ type: 'success', text: res.message || 'Application declined.' });
+        setEventAssignments(prev =>
+          prev.map(a => (a.id === asgId ? { ...a, status: 'Declined' } : a))
+        );
+      } else {
+        setMessage({ type: 'error', text: res.message || 'Failed to decline application.' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to communicate with server.' });
+    } finally {
+      setDecliningId(null);
+    }
+  };
 
   if (!event) return null;
 
@@ -412,6 +484,128 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Crew Applications & Team Roster */}
+              <div className="pt-4 border-t border-[#F0F3F9] space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[13.5px] font-bold text-[#101D4B] flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#563CF0]" />
+                    <span>Crew Applications & Team Roster</span>
+                  </h4>
+                  <span className="text-[11.5px] font-semibold text-[#563CF0] bg-[#EDE9FE] px-2.5 py-0.5 rounded-full">
+                    {eventAssignments.length} Members
+                  </span>
+                </div>
+
+                {loadingAssignments ? (
+                  <div className="p-4 text-center text-[12.5px] text-[#5F6D82] flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#563CF0]" />
+                    <span>Loading roster from MongoDB...</span>
+                  </div>
+                ) : eventAssignments.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-[#F8FAFD] border border-dashed border-[#CBD5E1] text-center">
+                    <p className="text-[12.5px] text-[#8A95A5]">No crew applications or assignments for this event yet.</p>
+                    <p className="text-[11.5px] text-[#5F6D82] mt-0.5">
+                      Publish to feed so freelancers can apply, or assemble crew using AI.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {eventAssignments.map((asg) => {
+                      const isPending = asg.status === 'Pending';
+                      const isConfirmed = asg.status === 'Confirmed';
+                      const isDeclined = asg.status === 'Declined';
+
+                      return (
+                        <div
+                          key={asg.id}
+                          className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
+                            isPending 
+                              ? 'bg-amber-50/60 border-amber-200' 
+                              : isConfirmed 
+                              ? 'bg-emerald-50/50 border-emerald-200' 
+                              : 'bg-[#F8FAFD] border-[#E2E8F0]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={asg.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=240&auto=format&fit=crop&q=80'}
+                              alt={asg.freelancerName}
+                              className="w-10 h-10 rounded-full object-cover ring-2 ring-white shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-[13px] font-bold text-[#101D4B] truncate">{asg.freelancerName}</p>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  isPending 
+                                    ? 'bg-amber-100 text-amber-800' 
+                                    : isConfirmed 
+                                    ? 'bg-emerald-100 text-emerald-800' 
+                                    : isDeclined 
+                                    ? 'bg-red-100 text-red-800' 
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {asg.status}
+                                </span>
+                              </div>
+                              <p className="text-[11.5px] text-[#5F6D82]">
+                                {asg.role} • Proposed Fee: ₹{asg.fee.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Approval / Status Actions */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isPending && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={approvingId === asg.id || decliningId === asg.id}
+                                  onClick={() => handleApproveApplicant(asg.id)}
+                                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11.5px] font-bold shadow-xs transition-colors flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  {approvingId === asg.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5" />
+                                  )}
+                                  <span>Approve</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={approvingId === asg.id || decliningId === asg.id}
+                                  onClick={() => handleDeclineApplicant(asg.id)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-[11.5px] font-semibold transition-colors disabled:opacity-50"
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            )}
+
+                            {isConfirmed && (
+                              <span className="text-[11.5px] font-bold text-emerald-700 flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Confirmed</span>
+                              </span>
+                            )}
+
+                            {isDeclined && (
+                              <button
+                                type="button"
+                                disabled={approvingId === asg.id}
+                                onClick={() => handleApproveApplicant(asg.id)}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#563CF0] hover:underline"
+                              >
+                                Re-approve
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

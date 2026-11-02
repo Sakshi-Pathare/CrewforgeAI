@@ -40,7 +40,7 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
   const [sortBy, setSortBy] = useState('Match Score');
   const [loading, setLoading] = useState(false);
   const [teamData, setTeamData] = useState<any>(null);
-  const [approvalNotice, setApprovalNotice] = useState<string | null>(null);
+  const [approvalNotice, setApprovalNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Fetch AI & Rule-based recommendations whenever eventData changes
   useEffect(() => {
@@ -71,19 +71,30 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
   const handleApproveTeam = async () => {
     if (!teamData || !teamData.selectedTeam) return;
     setLoading(true);
+    setApprovalNotice(null);
     try {
-      const res = await approveTeam(eventData.id, teamData.selectedTeam);
-      setApprovalNotice(res?.message || 'Crew team approved! Roster and call sheet have been confirmed.');
-      setTimeout(() => {
-        setApprovalNotice(null);
-        onNavigate('assignments');
-      }, 2000);
-    } catch (err) {
-      setApprovalNotice('Team approved and synced with production call sheet.');
-      setTimeout(() => {
-        setApprovalNotice(null);
-        onNavigate('assignments');
-      }, 2000);
+      const eventId = eventData.id || eventData._id;
+      const res = await approveTeam(eventId, teamData.selectedTeam);
+      if (res && res.success) {
+        setApprovalNotice({
+          type: 'success',
+          text: res.message || 'Crew team approved! Roster and call sheet have been confirmed.',
+        });
+        setTimeout(() => {
+          setApprovalNotice(null);
+          onNavigate('assignments');
+        }, 2000);
+      } else {
+        setApprovalNotice({
+          type: 'error',
+          text: res?.message || 'Failed to approve team recommendations.',
+        });
+      }
+    } catch (err: any) {
+      setApprovalNotice({
+        type: 'error',
+        text: err.message || 'Error communicating with team matching service.',
+      });
     } finally {
       setLoading(false);
     }
@@ -108,9 +119,15 @@ export const AiRecommendationsPage: React.FC<AiRecommendationsPageProps> = ({
     <div className="max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-150">
       {/* Toast Alert Notice */}
       {approvalNotice && (
-        <div className="fixed top-20 right-8 z-50 bg-[#101D4B] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-[#563CF0] flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
-          <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
-          <span className="text-[13.5px] font-medium">{approvalNotice}</span>
+        <div className={`fixed top-20 right-8 z-50 text-white px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${
+          approvalNotice.type === 'success' ? 'bg-[#101D4B] border-[#10B981]' : 'bg-red-900 border-red-500'
+        }`}>
+          {approvalNotice.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
+          ) : (
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+          )}
+          <span className="text-[13.5px] font-medium">{approvalNotice.text}</span>
         </div>
       )}
 

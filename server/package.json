@@ -14,7 +14,8 @@
     "test:profile": "node test/test-auth-profile.js",
     "test:events": "node test/test-event-management.js",
     "test:health": "node test/test-health-status.js",
-    "test": "node test/test-auth-rbac.js && node test/test-matching-engine.js && node test/test-phase4.js && node test/test-auth-profile.js && node test/test-event-management.js && node test/test-health-status.js"
+    "test:features": "node test/test-certificates-help-approvals.js",
+    "test": "node test/test-auth-rbac.js && node test/test-matching-engine.js && node test/test-phase4.js && node test/test-auth-profile.js && node test/test-event-management.js && node test/test-health-status.js && node test/test-certificates-help-approvals.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

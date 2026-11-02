@@ -47,8 +47,12 @@ export const calculateCompletion = (user, profile) => {
     else missing.push('Professional Bio (min 20 chars)');
 
     // 10. Portfolio or Certifications
-    if (profile?.portfolioUrl || (Array.isArray(profile?.certifications) && profile.certifications.length > 0)) score += 5;
-    else missing.push('Portfolio or LinkedIn URL');
+    if (
+      profile?.portfolioUrl || 
+      (Array.isArray(profile?.certificates) && profile.certificates.length > 0) || 
+      (Array.isArray(profile?.certifications) && profile.certifications.length > 0)
+    ) score += 5;
+    else missing.push('Portfolio or Certifications');
   } else {
     // Organizer Profile Criteria
     if (user.name && user.name.trim().length >= 2) score += 20;
@@ -148,6 +152,7 @@ export const updateMyProfile = async (req, res) => {
       experienceYears,
       previousEventExperience,
       certifications,
+      certificates,
       pricePerEvent,
       rateType,
       location,
@@ -184,7 +189,20 @@ export const updateMyProfile = async (req, res) => {
       if (Array.isArray(skills)) profile.skills = skills;
       if (experienceYears !== undefined) profile.experienceYears = Math.max(0, Number(experienceYears));
       if (previousEventExperience !== undefined) profile.previousEventExperience = previousEventExperience;
-      if (Array.isArray(certifications)) profile.certifications = certifications;
+      if (Array.isArray(certificates)) {
+        profile.certificates = certificates.map(c => ({
+          name: (c.name || '').trim(),
+          issuingOrganization: (c.issuingOrganization || '').trim(),
+          issueDate: (c.issueDate || '').trim(),
+          credentialUrl: (c.credentialUrl || '').trim(),
+          fileData: c.fileData || '',
+          fileName: (c.fileName || '').trim(),
+        })).filter(c => c.name && c.issuingOrganization);
+        // Also keep string certifications in sync
+        profile.certifications = profile.certificates.map(c => `${c.name} (${c.issuingOrganization})`);
+      } else if (Array.isArray(certifications)) {
+        profile.certifications = certifications;
+      }
       if (pricePerEvent !== undefined) profile.pricePerEvent = Math.max(0, Number(pricePerEvent));
       if (rateType) profile.rateType = rateType;
       if (city) profile.city = city.trim();
@@ -295,6 +313,173 @@ export const getProfileById = async (req, res) => {
     return res.status(500).json({
       error: 'ServerError',
       message: error.message || 'Failed to fetch profile',
+    });
+  }
+};
+
+// @desc    Add a certificate to logged-in freelancer profile
+// @route   POST /api/profile/certificates
+// @access  Private (Freelancer)
+export const addCertificate = async (req, res) => {
+  try {
+    const { name, issuingOrganization, issueDate, credentialUrl, fileData, fileName } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Certificate name is required.',
+      });
+    }
+
+    if (!issuingOrganization || !issuingOrganization.trim()) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Issuing organization is required.',
+      });
+    }
+
+    let profile = await FreelancerProfile.findOne({ userId: req.user._id });
+    if (!profile) {
+      profile = new FreelancerProfile({
+        userId: req.user._id,
+        primaryRole: 'Event Specialist',
+        pricePerEvent: 4000,
+      });
+    }
+
+    const newCert = {
+      name: name.trim(),
+      issuingOrganization: issuingOrganization.trim(),
+      issueDate: (issueDate || '').trim(),
+      credentialUrl: (credentialUrl || '').trim(),
+      fileData: fileData || '',
+      fileName: (fileName || '').trim(),
+    };
+
+    profile.certificates.push(newCert);
+    // Keep string array in sync
+    profile.certifications = profile.certificates.map(c => `${c.name} (${c.issuingOrganization})`);
+
+    await profile.save();
+
+    const createdCert = profile.certificates[profile.certificates.length - 1];
+
+    return res.status(201).json({
+      success: true,
+      message: 'Certificate added successfully',
+      certificate: createdCert,
+      certificates: profile.certificates,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'ServerError',
+      message: error.message || 'Failed to add certificate',
+    });
+  }
+};
+
+// @desc    Update an existing certificate
+// @route   PUT /api/profile/certificates/:certId
+// @access  Private (Freelancer)
+export const updateCertificate = async (req, res) => {
+  try {
+    const { certId } = req.params;
+    const { name, issuingOrganization, issueDate, credentialUrl, fileData, fileName } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Certificate name is required.',
+      });
+    }
+
+    if (!issuingOrganization || !issuingOrganization.trim()) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Issuing organization is required.',
+      });
+    }
+
+    const profile = await FreelancerProfile.findOne({ userId: req.user._id });
+    if (!profile) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: 'Freelancer profile not found.',
+      });
+    }
+
+    const cert = profile.certificates.id(certId);
+    if (!cert) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: 'Certificate not found.',
+      });
+    }
+
+    cert.name = name.trim();
+    cert.issuingOrganization = issuingOrganization.trim();
+    if (issueDate !== undefined) cert.issueDate = issueDate.trim();
+    if (credentialUrl !== undefined) cert.credentialUrl = credentialUrl.trim();
+    if (fileData !== undefined) cert.fileData = fileData;
+    if (fileName !== undefined) cert.fileName = fileName.trim();
+
+    // Sync string certifications
+    profile.certifications = profile.certificates.map(c => `${c.name} (${c.issuingOrganization})`);
+
+    await profile.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Certificate updated successfully',
+      certificate: cert,
+      certificates: profile.certificates,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'ServerError',
+      message: error.message || 'Failed to update certificate',
+    });
+  }
+};
+
+// @desc    Delete a certificate
+// @route   DELETE /api/profile/certificates/:certId
+// @access  Private (Freelancer)
+export const deleteCertificate = async (req, res) => {
+  try {
+    const { certId } = req.params;
+
+    const profile = await FreelancerProfile.findOne({ userId: req.user._id });
+    if (!profile) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: 'Freelancer profile not found.',
+      });
+    }
+
+    const certIndex = profile.certificates.findIndex(c => c._id.toString() === certId);
+    if (certIndex === -1) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: 'Certificate not found.',
+      });
+    }
+
+    profile.certificates.splice(certIndex, 1);
+    // Sync string certifications
+    profile.certifications = profile.certificates.map(c => `${c.name} (${c.issuingOrganization})`);
+
+    await profile.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Certificate deleted successfully',
+      certificates: profile.certificates,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'ServerError',
+      message: error.message || 'Failed to delete certificate',
     });
   }
 };

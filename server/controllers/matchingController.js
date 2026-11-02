@@ -231,36 +231,61 @@ export const approveTeamRecommendations = async (req, res) => {
     const teamToApprove = selectedTeam || [];
     const createdAssignments = [];
 
-    // Save assignments to MongoDB if DB connection is active
+    // Save or update assignments in MongoDB
     for (const member of teamToApprove) {
+      const targetFreelancerId = member.freelancerId || member.id || member._id;
+      const targetRole = member.assignedRole || member.role || 'Crew Specialist';
+      const targetFee = member.allocatedFee || member.pricePerEvent || 4000;
+
       try {
-        const asg = await Assignment.create({
-          eventId: event._id || event.id,
-          freelancerId: member.freelancerId || member.id,
-          role: member.assignedRole || member.role,
-          fee: member.allocatedFee || member.pricePerEvent,
-          status: 'Confirmed',
-          isBackup: false,
-          backupAssignedName: member.backupAssignedName || 'Auto Standby',
-        });
+        const isValidId = mongoose.Types.ObjectId.isValid(targetFreelancerId);
+        let asg = null;
 
-        // Send confirmation notification
-        await Notification.create({
-          userId: member.freelancerId || member.id,
-          type: 'Assignment',
-          title: 'Event Roster Confirmed',
-          message: `You are officially confirmed as ${member.assignedRole || member.role} for ${event.eventName}.`,
-        });
+        if (isValidId && event._id) {
+          // Check for existing pending or draft assignment for this freelancer on this event
+          asg = await Assignment.findOne({
+            eventId: event._id,
+            freelancerId: targetFreelancerId,
+          });
 
-        createdAssignments.push(asg);
+          if (asg) {
+            asg.status = 'Confirmed';
+            asg.role = targetRole;
+            asg.fee = targetFee;
+            await asg.save();
+          } else {
+            asg = await Assignment.create({
+              eventId: event._id,
+              freelancerId: targetFreelancerId,
+              role: targetRole,
+              fee: targetFee,
+              status: 'Confirmed',
+              isBackup: false,
+              backupAssignedName: member.backupAssignedName || 'Auto Standby',
+            });
+          }
+
+          // Send confirmation notification
+          await Notification.create({
+            userId: targetFreelancerId,
+            type: 'Assignment',
+            title: 'Event Roster Confirmed',
+            message: `You are officially confirmed as ${targetRole} for "${event.eventName}".`,
+            metadata: { eventId: event._id, assignmentId: asg._id },
+          });
+
+          createdAssignments.push(asg);
+        } else {
+          throw new Error('Non-ObjectId or fallback environment');
+        }
       } catch (err) {
         // Fallback simulation
         createdAssignments.push({
           id: `asg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          freelancerId: member.freelancerId || member.id,
-          freelancerName: member.name,
-          role: member.assignedRole || member.role,
-          fee: member.allocatedFee || member.pricePerEvent,
+          freelancerId: targetFreelancerId,
+          freelancerName: member.name || member.freelancerName || 'Crew Member',
+          role: targetRole,
+          fee: targetFee,
           status: 'Confirmed',
           backupAssigned: member.backupAssignedName || 'Auto Standby',
         });

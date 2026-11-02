@@ -7,27 +7,36 @@ import {
   Mail, 
   ShieldAlert, 
   FileCheck, 
-  ExternalLink,
-  ChevronDown,
-  UserCheck,
-  Calendar
+  ExternalLink, 
+  ChevronDown, 
+  UserCheck, 
+  Calendar,
+  Check,
+  X,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
-import { CrewAssignment, PageType, Freelancer } from '../types';
+import { CrewAssignment, PageType, Freelancer, User } from '../types';
+import { approveAssignment, declineAssignment } from '../services/api';
 
 interface AssignmentsPageProps {
   assignments: CrewAssignment[];
   onNavigate: (page: PageType) => void;
   onUpdateStatus?: (id: string, newStatus: CrewAssignment['status']) => void;
   onViewProfileByName?: (name: string) => void;
+  currentUser?: User | null;
 }
 
 export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
   assignments,
   onNavigate,
   onUpdateStatus,
+  currentUser,
 }) => {
   const [assignmentList, setAssignmentList] = useState<CrewAssignment[]>(assignments);
   const [filterStatus, setFilterStatus] = useState<string>('All');
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [bannerMessage, setBannerMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     setAssignmentList(assignments);
@@ -38,6 +47,60 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
     onUpdateStatus?.(id, newStatus);
   };
 
+  const handleApprove = async (id: string, freelancerName: string, role: string) => {
+    setBannerMessage(null);
+    setProcessingId(id);
+    try {
+      const res = await approveAssignment(id);
+      if (res.success) {
+        setBannerMessage({
+          type: 'success',
+          text: res.message || `Application approved! ${freelancerName} is now confirmed as ${role}.`,
+        });
+        updateStatus(id, 'Confirmed');
+      } else {
+        setBannerMessage({
+          type: 'error',
+          text: res.message || 'Failed to approve application on server.',
+        });
+      }
+    } catch (err: any) {
+      setBannerMessage({
+        type: 'error',
+        text: err.message || 'Error connecting to assignment service.',
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDecline = async (id: string, freelancerName: string) => {
+    setBannerMessage(null);
+    setProcessingId(id);
+    try {
+      const res = await declineAssignment(id);
+      if (res.success) {
+        setBannerMessage({
+          type: 'success',
+          text: res.message || `Application declined for ${freelancerName}.`,
+        });
+        updateStatus(id, 'Declined');
+      } else {
+        setBannerMessage({
+          type: 'error',
+          text: res.message || 'Failed to decline application.',
+        });
+      }
+    } catch (err: any) {
+      setBannerMessage({
+        type: 'error',
+        text: err.message || 'Error connecting to assignment service.',
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const filtered = filterStatus === 'All' 
     ? assignmentList 
     : assignmentList.filter(a => a.status === filterStatus);
@@ -46,6 +109,30 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
 
   return (
     <div className="max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-150 space-y-7">
+      {/* Alert Banner */}
+      {bannerMessage && (
+        <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-[13.5px] font-medium border animate-in fade-in ${
+          bannerMessage.type === 'success'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          <div className="flex items-center gap-2.5">
+            {bannerMessage.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            )}
+            <span>{bannerMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setBannerMessage(null)}
+            className="p-1 rounded-lg hover:bg-black/5 text-gray-500"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -125,10 +212,12 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
               className="bg-[#F8FAFD] border border-[#DFE5F2] rounded-xl px-3 py-1.5 text-[13px] font-semibold text-[#142653] focus:outline-none"
             >
               <option value="All">All Statuses</option>
+              <option value="Pending">Pending Approval</option>
               <option value="Confirmed">Confirmed</option>
               <option value="Briefed">Briefed</option>
               <option value="On-Site">On-Site</option>
               <option value="Completed">Completed</option>
+              <option value="Declined">Declined</option>
             </select>
           </div>
         </div>
@@ -185,26 +274,66 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({
 
                   <div>
                     <div className="text-[11px] font-semibold text-[#8A95A5] uppercase tracking-wide mb-1">
-                      Live Status
+                      Status & Actions
                     </div>
-                    <select
-                      value={item.status}
-                      onChange={(e) => updateStatus(item.id, e.target.value as any)}
-                      className={`text-[12px] font-bold px-3 py-1.5 rounded-full border cursor-pointer focus:outline-none ${
-                        item.status === 'Confirmed'
-                          ? 'bg-[#E8F8F0] text-[#10B981] border-[#10B981]/30'
-                          : item.status === 'Briefed'
-                          ? 'bg-[#EFF6FF] text-[#3B82F6] border-[#3B82F6]/30'
-                          : item.status === 'On-Site'
-                          ? 'bg-[#FEF3C7] text-[#D97706] border-[#D97706]/30'
-                          : 'bg-[#F3F4F8] text-[#4B5563] border-gray-200'
-                      }`}
-                    >
-                      <option value="Confirmed">✓ Confirmed</option>
-                      <option value="Briefed">● Briefed</option>
-                      <option value="On-Site">⚡ On-Site</option>
-                      <option value="Completed">★ Completed</option>
-                    </select>
+                    {item.status === 'Pending' ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={processingId === item.id}
+                          onClick={() => handleApprove(item.id, item.freelancerName, item.role)}
+                          className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          {processingId === item.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          <span>Approve Application</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={processingId === item.id}
+                          onClick={() => handleDecline(item.id, item.freelancerName)}
+                          className="px-3 py-1.5 rounded-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-[12px] font-semibold transition-colors disabled:opacity-50"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    ) : item.status === 'Declined' ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11.5px] font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-full">
+                          Declined
+                        </span>
+                        <button
+                          type="button"
+                          disabled={processingId === item.id}
+                          onClick={() => handleApprove(item.id, item.freelancerName, item.role)}
+                          className="text-[11.5px] font-semibold text-[#563CF0] hover:underline"
+                        >
+                          Re-approve
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={item.status}
+                        onChange={(e) => updateStatus(item.id, e.target.value as any)}
+                        className={`text-[12px] font-bold px-3 py-1.5 rounded-full border cursor-pointer focus:outline-none ${
+                          item.status === 'Confirmed'
+                            ? 'bg-[#E8F8F0] text-[#10B981] border-[#10B981]/30'
+                            : item.status === 'Briefed'
+                            ? 'bg-[#EFF6FF] text-[#3B82F6] border-[#3B82F6]/30'
+                            : item.status === 'On-Site'
+                            ? 'bg-[#FEF3C7] text-[#D97706] border-[#D97706]/30'
+                            : 'bg-[#F3F4F8] text-[#4B5563] border-gray-200'
+                        }`}
+                      >
+                        <option value="Confirmed">✓ Confirmed</option>
+                        <option value="Briefed">● Briefed</option>
+                        <option value="On-Site">⚡ On-Site</option>
+                        <option value="Completed">★ Completed</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 

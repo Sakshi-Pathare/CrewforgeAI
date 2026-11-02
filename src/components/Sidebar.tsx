@@ -8,7 +8,8 @@ import {
   RefreshCw,
   Calendar,
   User,
-  LogIn
+  LogIn,
+  HelpCircle
 } from 'lucide-react';
 import { PageType, User as UserType } from '../types';
 
@@ -113,6 +114,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {currentUser.role}
               </span>
             )}
+          </button>
+
+          {/* Help Center Nav Item */}
+          <button
+            onClick={() => onNavigate('help')}
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-medium text-[14.5px] transition-all duration-200 text-left ${
+              currentPage === 'help'
+                ? 'bg-[#563CF0] text-white shadow-md shadow-indigo-950/40 font-semibold'
+                : 'text-[#8E9BB5] hover:bg-[#182759] hover:text-white'
+            }`}
+          >
+            <HelpCircle className={`w-5 h-5 shrink-0 ${currentPage === 'help' ? 'text-white' : 'text-[#8E9BB5]'}`} />
+            <span className="flex-1">Help Center</span>
           </button>
         </nav>
       </div>

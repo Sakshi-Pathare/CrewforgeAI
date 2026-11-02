@@ -5,7 +5,7 @@
  * Features graceful fallback to verified responses if the backend is unreachable.
  */
 
-import { EventData, Freelancer, CrewAssignment, User, FreelancerProfileDetail } from '../types';
+import { EventData, Freelancer, CrewAssignment, User, FreelancerProfileDetail, CertificateItem } from '../types';
 import { MOCK_FREELANCERS, INITIAL_EVENT, INITIAL_ASSIGNMENTS } from '../data/mockData';
 
 /**
@@ -28,7 +28,7 @@ export const API_BASE_URL = resolveApiBaseUrl();
 /**
  * Helper to execute fetch requests with error catching
  */
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T | null> {
+export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T | null> {
   try {
     const token = localStorage.getItem('crewforge_token');
     const headers: Record<string, string> = {
@@ -200,6 +200,75 @@ export async function updateProfilePhoto(photoUrl: string): Promise<boolean> {
     return true;
   }
   return false;
+}
+
+/**
+ * 2b. Add Certificate
+ */
+export async function addCertificate(cert: CertificateItem): Promise<{
+  success: boolean;
+  message: string;
+  certificate?: CertificateItem;
+  certificates?: CertificateItem[];
+}> {
+  const result = await request<{
+    success: boolean;
+    message: string;
+    certificate?: CertificateItem;
+    certificates?: CertificateItem[];
+  }>('/profile/certificates', {
+    method: 'POST',
+    body: JSON.stringify(cert),
+  });
+
+  if (result) return result;
+  return { success: false, message: 'Failed to add certificate to server' };
+}
+
+/**
+ * 2c. Update Certificate
+ */
+export async function updateCertificate(
+  certId: string,
+  cert: Partial<CertificateItem>
+): Promise<{
+  success: boolean;
+  message: string;
+  certificate?: CertificateItem;
+  certificates?: CertificateItem[];
+}> {
+  const result = await request<{
+    success: boolean;
+    message: string;
+    certificate?: CertificateItem;
+    certificates?: CertificateItem[];
+  }>(`/profile/certificates/${certId}`, {
+    method: 'PUT',
+    body: JSON.stringify(cert),
+  });
+
+  if (result) return result;
+  return { success: false, message: 'Failed to update certificate on server' };
+}
+
+/**
+ * 2d. Delete Certificate
+ */
+export async function deleteCertificate(certId: string): Promise<{
+  success: boolean;
+  message: string;
+  certificates?: CertificateItem[];
+}> {
+  const result = await request<{
+    success: boolean;
+    message: string;
+    certificates?: CertificateItem[];
+  }>(`/profile/certificates/${certId}`, {
+    method: 'DELETE',
+  });
+
+  if (result) return result;
+  return { success: false, message: 'Failed to delete certificate on server' };
 }
 
 /**
@@ -675,7 +744,7 @@ export async function getAssignments(eventId: string): Promise<CrewAssignment[]>
     assignments: any[];
   }>(`/assignments/event/${eventId}`);
 
-  if (result && Array.isArray(result.assignments) && result.assignments.length > 0) {
+  if (result && Array.isArray(result.assignments)) {
     return result.assignments.map(a => ({
       id: a._id || a.id,
       eventId: a.eventId?._id || a.eventId || eventId,
@@ -683,8 +752,38 @@ export async function getAssignments(eventId: string): Promise<CrewAssignment[]>
       freelancerName: a.freelancerId?.name || a.freelancerName || a.name || 'Crew Member',
       role: a.role,
       avatar: a.freelancerId?.avatar || a.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=240&auto=format&fit=crop&q=80',
-      eventName: a.eventId?.eventName || a.eventName || 'Annual College Fest',
-      date: a.eventId?.date || a.date || '24 October 2026',
+      eventName: a.eventId?.eventName || a.eventName || 'Event Production',
+      date: a.eventId?.date || a.date || 'Upcoming',
+      status: a.status || 'Confirmed',
+      fee: a.fee || 4500,
+      backupAssigned: a.backupAssignedName || a.backupAssigned || 'Auto Standby',
+      phone: a.freelancerId?.phone || a.phone || '+91 98220 00000',
+    }));
+  }
+
+  return INITIAL_ASSIGNMENTS;
+}
+
+/**
+ * 7b. Fetch All Assignments for Organizer / Admin
+ */
+export async function getAllAssignments(): Promise<CrewAssignment[]> {
+  const result = await request<{
+    success: boolean;
+    count: number;
+    assignments: any[];
+  }>('/assignments');
+
+  if (result && Array.isArray(result.assignments)) {
+    return result.assignments.map(a => ({
+      id: a._id || a.id,
+      eventId: a.eventId?._id || a.eventId || '',
+      freelancerId: a.freelancerId?._id || a.freelancerId || a.id,
+      freelancerName: a.freelancerId?.name || a.freelancerName || a.name || 'Crew Member',
+      role: a.role,
+      avatar: a.freelancerId?.avatar || a.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=240&auto=format&fit=crop&q=80',
+      eventName: a.eventId?.eventName || a.eventName || 'Event Production',
+      date: a.eventId?.date || a.date || 'Upcoming',
       status: a.status || 'Confirmed',
       fee: a.fee || 4500,
       backupAssigned: a.backupAssignedName || a.backupAssigned || 'Auto Standby',
@@ -708,6 +807,46 @@ export async function updateAssignmentStatus(assignmentId: string, status: strin
   });
 
   return !!result?.success;
+}
+
+/**
+ * 8b. Approve Application / Assignment
+ */
+export async function approveAssignment(assignmentId: string): Promise<{
+  success: boolean;
+  message: string;
+  assignment?: any;
+}> {
+  const result = await request<{
+    success: boolean;
+    message: string;
+    assignment?: any;
+  }>(`/assignments/${assignmentId}/approve`, {
+    method: 'PATCH',
+  });
+
+  if (result) return result;
+  return { success: false, message: 'Server unreachable or request failed' };
+}
+
+/**
+ * 8c. Decline Application / Assignment
+ */
+export async function declineAssignment(assignmentId: string): Promise<{
+  success: boolean;
+  message: string;
+  assignment?: any;
+}> {
+  const result = await request<{
+    success: boolean;
+    message: string;
+    assignment?: any;
+  }>(`/assignments/${assignmentId}/decline`, {
+    method: 'PATCH',
+  });
+
+  if (result) return result;
+  return { success: false, message: 'Server unreachable or request failed' };
 }
 
 /**

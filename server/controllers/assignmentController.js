@@ -9,6 +9,36 @@ import {
   notifyStatusChange,
 } from '../services/notificationService.js';
 
+// @desc    Get all assignments (for Organizer across their events, or Admin)
+// @route   GET /api/assignments
+// @access  Private (Organizer, Admin)
+export const getAllAssignments = async (req, res) => {
+  try {
+    let query = {};
+    if (req.user.role === 'Organizer') {
+      const myEvents = await Event.find({ organizerId: req.user._id }).select('_id');
+      const eventIds = myEvents.map(e => e._id);
+      query = { $or: [{ eventId: { $in: eventIds } }, { eventId: { $exists: false } }] };
+    }
+
+    const assignments = await Assignment.find(query)
+      .populate('freelancerId', 'name email phone avatar')
+      .populate('eventId', 'eventName date location totalBudget')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: assignments.length,
+      assignments,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'ServerError',
+      message: error.message || 'Failed to fetch assignments',
+    });
+  }
+};
+
 // @desc    Get all confirmed/assigned crew for a specific event
 // @route   GET /api/assignments/event/:eventId
 // @access  Private
@@ -163,6 +193,16 @@ export const updateAssignmentStatus = async (req, res) => {
       });
     }
 
+    if (req.user.role === 'Organizer') {
+      const eventOrganizerId = assignment.eventId?.organizerId?.toString();
+      if (eventOrganizerId && eventOrganizerId !== req.user._id.toString()) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'You are not authorized to update assignments for an event you do not organize.',
+        });
+      }
+    }
+
     const oldStatus = assignment.status;
     assignment.status = status;
     await assignment.save();
@@ -217,6 +257,127 @@ export const updateAssignmentStatus = async (req, res) => {
     return res.status(500).json({
       error: 'ServerError',
       message: error.message || 'Failed to update assignment status',
+    });
+  }
+};
+
+// @desc    Approve a pending assignment/application
+// @route   PATCH /api/assignments/:id/approve
+// @access  Private (Organizer, Admin)
+export const approveAssignment = async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id)
+      .populate('eventId')
+      .populate('freelancerId', 'name email phone avatar');
+
+    if (!assignment) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: 'Assignment not found',
+      });
+    }
+
+    // Authorization check: Only Admin or Event Organizer can approve
+    if (req.user.role !== 'Admin') {
+      const eventOrganizerId = assignment.eventId?.organizerId?.toString();
+      if (eventOrganizerId && eventOrganizerId !== req.user._id.toString()) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'You are not authorized to approve applications for this event.',
+        });
+      }
+    }
+
+    if (assignment.status === 'Confirmed') {
+      return res.status(200).json({
+        success: true,
+        message: 'This application is already approved and confirmed.',
+        assignment,
+      });
+    }
+
+    assignment.status = 'Confirmed';
+    await assignment.save();
+
+    const eventName = assignment.eventId?.eventName || 'Production';
+    const freelancerName = assignment.freelancerId?.name || 'Crew member';
+
+    // Notify the freelancer of approval
+    if (assignment.freelancerId?._id) {
+      await notifyAssignmentApproval({
+        freelancerId: assignment.freelancerId._id,
+        role: assignment.role,
+        eventName,
+        eventId: assignment.eventId?._id,
+        assignmentId: assignment._id,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Application approved! ${freelancerName} is now confirmed as ${assignment.role}.`,
+      assignment,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'ServerError',
+      message: error.message || 'Failed to approve assignment',
+    });
+  }
+};
+
+// @desc    Decline a pending assignment/application
+// @route   PATCH /api/assignments/:id/decline
+// @access  Private (Organizer, Admin)
+export const declineAssignment = async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id)
+      .populate('eventId')
+      .populate('freelancerId', 'name email phone avatar');
+
+    if (!assignment) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: 'Assignment not found',
+      });
+    }
+
+    // Authorization check: Only Admin or Event Organizer can decline
+    if (req.user.role !== 'Admin') {
+      const eventOrganizerId = assignment.eventId?.organizerId?.toString();
+      if (eventOrganizerId && eventOrganizerId !== req.user._id.toString()) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'You are not authorized to decline applications for this event.',
+        });
+      }
+    }
+
+    assignment.status = 'Declined';
+    await assignment.save();
+
+    const eventName = assignment.eventId?.eventName || 'Production';
+    const freelancerName = assignment.freelancerId?.name || 'Crew member';
+
+    if (assignment.freelancerId?._id) {
+      await notifyAssignmentRejection({
+        organizerId: req.user._id,
+        freelancerName,
+        role: assignment.role,
+        eventName,
+        eventId: assignment.eventId?._id,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Application declined for ${freelancerName}.`,
+      assignment,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'ServerError',
+      message: error.message || 'Failed to decline assignment',
     });
   }
 };

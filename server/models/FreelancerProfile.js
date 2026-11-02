@@ -1,5 +1,40 @@
 import mongoose from 'mongoose';
 
+const certificateSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, 'Certificate name is required'],
+      trim: true,
+    },
+    issuingOrganization: {
+      type: String,
+      required: [true, 'Issuing organization is required'],
+      trim: true,
+    },
+    issueDate: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    credentialUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    fileData: {
+      type: String, // Base64 data URL or document link
+      default: '',
+    },
+    fileName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+  },
+  { _id: true, timestamps: true }
+);
+
 const freelancerProfileSchema = new mongoose.Schema(
   {
     userId: {
@@ -36,6 +71,10 @@ const freelancerProfileSchema = new mongoose.Schema(
     },
     certifications: {
       type: [String],
+      default: [],
+    },
+    certificates: {
+      type: [certificateSchema],
       default: [],
     },
     pricePerEvent: {

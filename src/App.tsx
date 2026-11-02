@@ -13,6 +13,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { FreelancerProfilePage } from './pages/FreelancerProfilePage';
 import { OrganizerProfilePage } from './pages/OrganizerProfilePage';
+import { HelpCenterPage } from './pages/HelpCenterPage';
 import { 
   PageType, 
   Freelancer, 
@@ -323,6 +324,7 @@ export const App: React.FC = () => {
               assignments={assignments}
               onNavigate={setCurrentPage}
               onUpdateStatus={handleUpdateAssignmentStatus}
+              currentUser={currentUser}
             />
           )}
 
@@ -346,6 +348,14 @@ export const App: React.FC = () => {
                   return a;
                 }));
               }}
+            />
+          )}
+
+          {/* Help & Knowledge Center Screen */}
+          {currentPage === 'help' && (
+            <HelpCenterPage
+              onNavigate={setCurrentPage}
+              currentUser={currentUser}
             />
           )}
         </main>

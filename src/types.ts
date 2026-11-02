@@ -9,7 +9,19 @@ export type PageType =
   | 'register'
   | 'freelancer-profile'
   | 'organizer-profile'
-  | 'manage-events';
+  | 'manage-events'
+  | 'help';
+
+export interface CertificateItem {
+  id?: string;
+  _id?: string;
+  name: string;
+  issuingOrganization: string;
+  issueDate?: string;
+  credentialUrl?: string;
+  fileData?: string;
+  fileName?: string;
+}
 
 export interface User {
   id: string;
@@ -34,6 +46,7 @@ export interface FreelancerProfileDetail {
   experienceYears: number;
   previousEventExperience?: string;
   certifications?: string[];
+  certificates?: CertificateItem[];
   pricePerEvent: number;
   rateType?: 'per-event' | 'hourly' | 'daily';
   city?: string;

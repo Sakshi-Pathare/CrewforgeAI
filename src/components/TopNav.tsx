@@ -127,10 +127,13 @@ export const TopNav: React.FC<TopNavProps> = ({
       <div className="flex items-center gap-6">
         {/* Help Centre */}
         <button 
-          onClick={() => alert("Crew Forge Help Centre\n\nNeed assistance assembling crew for your event? Our 24/7 Concierge and AI matching algorithm are active.")}
-          className="flex items-center gap-2 text-[13.5px] font-medium text-[#5F6D82] hover:text-[#142653] transition-colors"
+          onClick={() => onNavigate?.('help')}
+          className={`flex items-center gap-2 text-[13.5px] font-medium transition-colors ${
+            currentPage === 'help' ? 'text-[#563CF0] font-bold' : 'text-[#5F6D82] hover:text-[#142653]'
+          }`}
+          title="Open Help Center"
         >
-          <HelpCircle className="w-[18px] h-[18px] text-[#5F6D82]" />
+          <HelpCircle className={`w-[18px] h-[18px] ${currentPage === 'help' ? 'text-[#563CF0]' : 'text-[#5F6D82]'}`} />
           <span>Help Centre</span>
         </button>
 
