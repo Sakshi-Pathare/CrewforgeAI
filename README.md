@@ -1,91 +1,131 @@
-# Crew Forge
+# Crew Forge AI — AI-Powered Crew Assembly Platform
 
-> **AI-Powered Crew Assembly Platform** for events, productions, and festivals.
-
-CrewForge AI is a desktop-first web application designed to help event organizers seamlessly assemble, match, and manage freelance event crews with intelligent AI recommendations, automated standby contingencies, and roster management.
+> **Crew Forge AI** is an intelligent, full-stack event staffing and crew assembly platform designed for event organizers, festival directors, and production managers to seamlessly source, assemble, and manage freelance event crews with explainable AI match recommendations and 1-click standby contingency redundancy.
 
 ---
 
-## 🎨 Visual Ground Truth & Design Specifications
+## 🎨 Visual Design Specifications
 
-- **Reference Canvas**: Desktop-first (1536 × 1024 px)
-- **Sidebar**: Fixed ~294px wide, `#101D4B` (Dark Navy) with active `#563CF0` (Electric Purple) pill navigation and bottom calendar/crew illustration
-- **Top Navigation**: Fixed ~74px high with unified search, Help Centre, notifications bell, and user profile
-- **Main Canvas**: `#F2F5FD` (Light Lavender) background with `#FFFFFF` white cards and `#142653` navy headings
-- **Color Tokens**:
-  - Primary Action / Buttons: `#563CF0`
-  - Violet Accent / AI Gradient: `#7545F5` to `#563CF0`
-  - Card & Form Borders: `#EAEFF8` / `#DFE5F2`
-  - Online / Available Status: `#10B981` / `#E8F8F0`
+* **Design Palette**:
+  * Navy Primary: `#101D4B` (Navigation Sidebar & Dark Containers)
+  * Electric Purple: `#563CF0` (Action Buttons, Active State Indicators, Badges)
+  * Light Lavender: `#F2F5FD` (Page Canvas Background)
+  * White Surface: `#FFFFFF` (Elevated Cards, Tables, and Forms)
+  * Success Emerald: `#10B981` (Online Badges & Verified Match Indicators)
+* **Desktop-First Layout**: 1536 × 1024 px reference canvas with fixed 294px sidebar and 74px top navigation.
 
 ---
 
-## 🚀 Key Modules & Pages
+## 🚀 Key Features
 
-### 1. Create New Event
-- Two-column form: Event Name, Event Type, Event Date, Location, Total Budget (₹), Crew Members Needed.
-- Full-width fields: Required Crew Roles, Additional Requirements.
-- Action triggers: `Cancel` and `Save & Find Crew →`.
-
-### 2. Find Crew
-- Top AI suggestion banner (`Get AI Suggestions →`).
-- **Filter Panel**: Role/skill dropdown, Experience Level, Availability, Price range slider (₹1,000 to ₹10,000+), Rating (4.0+), and `Apply Filters`.
-- **3-Column Freelancer Grid**: Profile portraits, verified badges, rating stars, reviews count, price per event, skill chips, availability notes, and interactive `View Profile` / `Select Crew` actions.
-
-### 3. AI Recommendations
-- **Event Summary Card**: Annual College Fest thumbnail, College Event tag, date, location, required roles tags, required crew count, and total budget.
-- **Ranked Match Cards**: 98%, 95%, 92%, 90% AI match indicators, availability checkmarks, review counts, price per event, `View Profile` modal trigger, and favorite heart toggle.
-- **AI Match Score Panel**: Purple gradient card with circular **94% Average Match Score** ring.
-- **Why AI Recommendations?** card with 4 core value propositions.
-- **Adjust Requirements** card linking back to event editing.
-
-### 4. Dashboard
-- Personalized welcome banner for Varsharani.
-- 4 key metrics: Active Events, Crew Sourced, Avg Match Score (94%), Budget Allocated.
-- Upcoming events list with quick links to view crew and edit event.
-- Top-rated talent roster.
-
-### 5. Assignments & Rosters
-- Confirmed crew call sheet for production day.
-- Live status tracker: `Confirmed`, `Briefed`, `On-Site`, `Completed`.
-- Budget committed tracking and call sheet access.
-
-### 6. Backup Crew & Risk Shield
-- 100% redundancy coverage.
-- Primary vs Standby contingency mappings.
-- **1-Click Instant Swap** to handle emergencies and no-shows without production delays.
+1. **Role-Based Authentication & Profiles**:
+   * Multi-role support: **Organizer**, **Freelancer**, and **Admin**.
+   * Secure bcrypt password hashing and persistent JWT session storage.
+   * Dynamic profile completion calculation (0% to 100%) with actionable improvement tips.
+2. **Event Production Management**:
+   * Full event lifecycle: `Draft`, `Published`, `In Progress`, `Completed`, `Cancelled`.
+   * Role requirements, budget allocation, schedule timing, and venue location tracking.
+3. **5-Factor Explainable AI Crew Matching Engine**:
+   * Evaluates candidates across 5 configurable dimensions:
+     * Skills Match (30%)
+     * Date Availability & Blacklist Filtering (25%)
+     * Historical Reliability & Performance Score (20%)
+     * Fee vs Budget Suitability (15%)
+     * Geographic / City Proximity (10%)
+   * Detects schedule conflicts and double-booking automatically.
+4. **Standby Contingency & 1-Click Backup Shield**:
+   * 100% redundancy pairing for high-risk and critical event roles (Sound Engineers, Photographers, Anchors, Security).
+   * 1-click standby backup replacement with instant notification dispatch.
+5. **Real-Time Operational Dashboard**:
+   * Aggregated MongoDB production statistics, upcoming productions, and active crew call sheets.
+   * Resilient local cache fallback when offline, with live reconnection detection.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-- **React 18** + **TypeScript**
-- **Vite** (Lightning-fast HMR and bundling)
-- **Tailwind CSS** (Custom theme tokens matching exact design hex values)
-- **Lucide Icons** (Consistent iconography)
+* **Frontend**: React 18, TypeScript 5, Vite 5, Tailwind CSS, Lucide Icons.
+* **Backend**: Node.js, Express 4, Mongoose 8.
+* **Database**: MongoDB Atlas (Cloud Replica Set).
+* **Security**: JWT authentication, bcryptjs password hashing, strict CORS policies, and sanitized logging.
+* **Hosting**:
+  * **Frontend**: Vercel (Production SPA with rewrite rules)
+  * **Backend**: Render (Web Service Container with health check monitoring)
+  * **Database**: MongoDB Atlas (AWS us-east-1 Cluster)
 
 ---
 
-## 📦 Getting Started
+## 📂 Repository & Git Workflow
 
-```bash
-# Clone the repository
-git clone https://github.com/Sakshi-Pathare/CrewforgeAI.git
+This project is configured with a two-remote upstream fork model:
 
-# Navigate to project folder
-cd CrewforgeAI
+| Remote Name | Repository URL | Purpose |
+| :--- | :--- | :--- |
+| **`origin`** | `https://github.com/Sakshi-Pathare/CrewforgeAI.git` | Original shared repository (upstream source). |
+| **`myfork`** | `https://github.com/VarsharaniPatil0922/CrewforgeAI.git` | Personal GitHub fork for ongoing development. |
 
-# Install dependencies
-npm install
+### Daily Git Commands:
 
-# Start development server
-npm run dev
+```powershell
+# Check current remotes
+git remote -v
+
+# Push your changes to your personal fork
+git push myfork main
+
+# Fetch latest updates from the shared repository
+git fetch origin
+
+# Merge changes from origin/main into your local main
+git merge origin/main
+
+# Push updated changes to your personal fork
+git push myfork main
 ```
 
-Visit `http://localhost:3000` to view the application.
+---
+
+## ⚙️ Environment Variables
+
+### Frontend (`.env` for local development or Vercel Environment Variables):
+```env
+VITE_API_BASE_URL=https://crewforgeai.onrender.com/api
+```
+
+### Backend (`server/.env` for local development or Render Environment Variables):
+```env
+NODE_ENV=production
+PORT=5000
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.5bg9uxe.mongodb.net/crewforge?retryWrites=true&w=majority
+JWT_SECRET=your_production_jwt_secret_min_32_characters
+CLIENT_URL=https://your-frontend.vercel.app
+```
+
+---
+
+## 🧪 Local Development & Testing
+
+```powershell
+# 1. Install root dependencies
+npm install
+
+# 2. Install backend dependencies
+npm install --prefix server
+
+# 3. Run all 6 automated test suites (113 tests)
+npm run server:test
+
+# 4. Run TypeScript check and production build
+npm run build
+
+# 5. Start frontend development server
+npm run dev
+
+# 6. Start backend development server
+npm run server
+```
 
 ---
 
 ## 📄 License
-MIT
-
+MIT License
