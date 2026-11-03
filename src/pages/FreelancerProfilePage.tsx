@@ -390,7 +390,10 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = ({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px]">
-        <div className="w-12 h-12 border-4 border-[#563CF0]/20 border-t-[#563CF0] rounded-full animate-spin"></div>
+        <div className="relative w-16 h-16 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-2xl border-2 border-[#563CF0]/20 border-t-[#563CF0] animate-spin"></div>
+          <img src="/brand/crewforge-icon.png" alt="CrewForge" className="w-8 h-8 object-contain animate-pulse" />
+        </div>
         <p className="mt-4 text-[14px] font-medium text-[#5F6D82]">Loading your Freelancer Profile...</p>
       </div>
     );

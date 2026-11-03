@@ -297,6 +297,48 @@ export const UPCOMING_EVENTS: EventData[] = [
     requiredRoles: ['Sound Engineer', 'Lighting Designer', 'Security', 'Stage Hands'],
     bannerImage: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&auto=format&fit=crop&q=80',
     status: 'Planning'
+  },
+  {
+    id: 'evt-104',
+    name: 'MITAOE College Hackathon',
+    eventName: 'MITAOE College Hackathon',
+    type: 'Hackathon / Tech Fest',
+    eventType: 'College Event',
+    category: 'Hackathon',
+    date: '20 November 2026',
+    startTime: '09:00 AM',
+    endTime: '09:00 PM',
+    venue: 'MIT Academy of Engineering (MITAOE) Campus',
+    city: 'Pune',
+    location: 'Alandi, Pune, Maharashtra',
+    totalBudget: 35000,
+    crewMembersNeeded: 8,
+    requiredRoles: ['Photographer', 'Videographer', 'Technical Coordinator', 'Event Anchor'],
+    requiredSkills: ['Photography', 'Live Streaming', 'Stage Pacing', 'AV Systems'],
+    additionalRequirements: '48-hour continuous national hackathon. Crew needed for live stage announcements, project presentations coverage, and high-speed photo highlights.',
+    bannerImage: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=600&auto=format&fit=crop&q=80',
+    status: 'Published'
+  },
+  {
+    id: 'evt-105',
+    name: 'Birthday Party',
+    eventName: 'Birthday Party',
+    type: 'Private Celebration',
+    eventType: 'Private Party',
+    category: 'Birthday',
+    date: '28 November 2026',
+    startTime: '06:30 PM',
+    endTime: '11:30 PM',
+    venue: 'The Westin Grand Ballroom',
+    city: 'Pune',
+    location: 'Koregaon Park, Pune, Maharashtra',
+    totalBudget: 18000,
+    crewMembersNeeded: 4,
+    requiredRoles: ['Photographer', 'Sound Engineer', 'Event Anchor', 'Decorator'],
+    requiredSkills: ['Portrait Photography', 'Party Audio / DJ', 'Crowd Engagement', 'Lighting'],
+    additionalRequirements: 'Evening milestone birthday party with dance floor, cake-cutting ceremony, family portrait sessions, and curated party playlist.',
+    bannerImage: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&auto=format&fit=crop&q=80',
+    status: 'Published'
   }
 ];
 

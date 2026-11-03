@@ -41,11 +41,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   currentUser,
 }) => {
   const [stats, setStats] = useState<DashboardStats>({
-    totalEvents: events.length || 4,
-    upcomingEvents: events.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled').length || 3,
+    totalEvents: events.length || 5,
+    upcomingEvents: events.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled').length || 5,
     activeEvents: events.filter(e => e.status === 'In Progress' || e.status === 'Live' || e.status === 'Confirmed').length || 2,
     completedEvents: events.filter(e => e.status === 'Completed').length || 1,
-    crewRequirements: events.reduce((sum, e) => sum + (e.crewMembersNeeded || 8), 0) || 32,
+    crewRequirements: events.reduce((sum, e) => sum + (e.crewMembersNeeded || 8), 0) || 47,
     activeAssignments: 14,
     availableFreelancers: freelancers.filter(f => f.status === 'Online').length || 12,
     pendingApprovals: 2,
@@ -64,7 +64,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setIsLoading(true);
     try {
       const data = await getDashboardStats();
-      setStats(data.stats);
+      setStats({
+        ...data.stats,
+        totalEvents: Math.max(data.stats?.totalEvents || 0, events.length),
+        upcomingEvents: Math.max(data.stats?.upcomingEvents || 0, events.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled').length),
+        crewRequirements: Math.max(data.stats?.crewRequirements || 0, events.reduce((sum, e) => sum + (e.crewMembersNeeded || 8), 0)),
+      });
       setIsDbConnected(data.isDatabaseConnected);
       if (data.warning) {
         setWarningMessage(data.warning);

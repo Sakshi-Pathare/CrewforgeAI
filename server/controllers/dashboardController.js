@@ -3,6 +3,7 @@ import { Event } from '../models/Event.js';
 import { Assignment } from '../models/Assignment.js';
 import { FreelancerProfile } from '../models/FreelancerProfile.js';
 import { User } from '../models/User.js';
+import { SAMPLE_EVENTS } from '../utils/sampleData.js';
 
 // @desc    Get aggregated dashboard metrics and summary from database
 // @route   GET /api/dashboard/stats
@@ -18,11 +19,11 @@ export const getDashboardStats = async (req, res) => {
         isDatabaseConnected: false,
         warning: 'MongoDB is disconnected. Returning fallback operational dashboard metrics.',
         stats: {
-          totalEvents: 4,
-          upcomingEvents: 3,
+          totalEvents: 5,
+          upcomingEvents: 5,
           activeEvents: 2,
           completedEvents: 1,
-          crewRequirements: 32,
+          crewRequirements: 47,
           activeAssignments: 14,
           availableFreelancers: 12,
           pendingApprovals: 2,
@@ -37,7 +38,7 @@ export const getDashboardStats = async (req, res) => {
             Cancelled: 0,
           },
         },
-        recentEvents: [],
+        recentEvents: SAMPLE_EVENTS,
         activeCrewCallSheet: [],
       });
     }

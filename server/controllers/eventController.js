@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import { Event } from '../models/Event.js';
+import { SAMPLE_EVENTS, SAMPLE_EVENT } from '../utils/sampleData.js';
 import { Assignment } from '../models/Assignment.js';
 import { Notification } from '../models/Notification.js';
 import { notifyEventUpdate } from '../services/notificationService.js';
@@ -22,6 +24,28 @@ const VALID_STATUSES = [
 export const getEvents = async (req, res) => {
   try {
     const { status, category, eventType, city, search, scope } = req.query;
+
+    if (mongoose.connection.readyState !== 1) {
+      let filtered = [...SAMPLE_EVENTS];
+      if (status && status !== 'All') {
+        filtered = filtered.filter(e => (e.status || 'Published').toLowerCase() === status.toLowerCase());
+      }
+      if (search && search.trim()) {
+        const q = search.trim().toLowerCase();
+        filtered = filtered.filter(e => 
+          (e.eventName && e.eventName.toLowerCase().includes(q)) ||
+          (e.name && e.name.toLowerCase().includes(q)) ||
+          (e.location && e.location.toLowerCase().includes(q)) ||
+          (e.type && e.type.toLowerCase().includes(q))
+        );
+      }
+      return res.status(200).json({
+        success: true,
+        count: filtered.length,
+        events: filtered,
+        isDatabaseConnected: false,
+      });
+    }
     let query = {};
 
     // 1. Determine Scope based on user role and query

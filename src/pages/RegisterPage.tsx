@@ -95,6 +95,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
           <div className="absolute top-0 right-0 w-72 h-72 bg-[#7545F5]/30 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
 
           <div className="relative z-10">
+            <div className="mb-8">
+              <img
+                src="/brand/crewforge-logo-white.png"
+                alt="CrewForge"
+                className="h-11 w-auto object-contain max-w-[220px]"
+              />
+            </div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white text-[12px] font-semibold mb-6 backdrop-blur-md">
               <Sparkles className="w-3.5 h-3.5 text-[#A5B4FB]" />
               <span>Join Crew Forge AI</span>
@@ -127,7 +134,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         <div className="lg:col-span-7 p-10">
           <div className="max-w-md w-full mx-auto space-y-6">
             <div>
-              <h1 className="text-[26px] font-black text-[#142653] tracking-tight">
+              <div className="flex items-center gap-2.5 mb-2">
+                <img src="/brand/crewforge-icon.png" alt="CrewForge" className="w-8 h-8 object-contain" />
+                <span className="text-[20px] font-black text-[#142653] tracking-tight">CrewForge</span>
+              </div>
+              <h1 className="text-[24px] font-black text-[#142653] tracking-tight">
                 Create your account
               </h1>
               <p className="text-[14px] text-[#5F6D82] mt-1">

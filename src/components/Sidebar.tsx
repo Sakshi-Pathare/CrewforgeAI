@@ -1,4 +1,5 @@
 import React from 'react';
+import crewForgeLogo from '../assets/brand/crewforge-logo-sidebar.png';
 import { 
   Home, 
   PlusCircle, 
@@ -75,23 +76,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Top Branding Section */}
         <div>
           <div className="pt-6 pb-5 px-6 sm:px-7 flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              {/* Logo Icon */}
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#563CF0] to-[#7545F5] flex items-center justify-center shadow-lg shadow-indigo-900/40 shrink-0">
-                <div className="flex -space-x-1 items-center justify-center">
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/90"></span>
-                  <span className="w-3.5 h-3.5 rounded-full bg-white -translate-y-0.5"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/90"></span>
-                </div>
-              </div>
-              <div>
-                <div className="text-[17px] font-bold tracking-wide text-white leading-tight">
-                  CREW FORGE
-                </div>
-                <div className="text-[11px] font-medium text-[#8F9CAE] tracking-tight">
-                  AI-Powered Crew Assembly
-                </div>
-              </div>
+            {/* CrewForge Brand Logo */}
+            <div 
+              onClick={() => handleNavClick('dashboard')}
+              className="flex items-center cursor-pointer select-none transition-opacity hover:opacity-90"
+              title="CrewForge Home"
+            >
+              <img
+                src={crewForgeLogo}
+                alt="CrewForge"
+                className="h-9 w-auto object-contain max-w-[200px]"
+              />
             </div>
 
             {/* Mobile Close Button */}

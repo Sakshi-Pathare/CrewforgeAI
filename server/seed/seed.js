@@ -343,6 +343,42 @@ const seedData = async () => {
       status: 'Confirmed',
     });
 
+    await Event.create({
+      organizerId: organizerUser._id,
+      eventName: 'MITAOE College Hackathon',
+      eventType: 'College Event',
+      date: '20 November 2026',
+      startTime: '09:00 AM',
+      endTime: '09:00 PM',
+      venue: 'MIT Academy of Engineering (MITAOE) Campus',
+      city: 'Pune',
+      location: 'Alandi, Pune, Maharashtra',
+      totalBudget: 35000,
+      crewMembersNeeded: 8,
+      requiredRoles: ['Photographer', 'Videographer', 'Technical Coordinator', 'Event Anchor'],
+      additionalRequirements: '48-hour continuous national hackathon. Crew needed for live stage announcements, project presentations coverage, and high-speed photo highlights.',
+      bannerImage: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=600&auto=format&fit=crop&q=80',
+      status: 'Published',
+    });
+
+    await Event.create({
+      organizerId: organizerUser._id,
+      eventName: 'Birthday Party',
+      eventType: 'Private Party',
+      date: '28 November 2026',
+      startTime: '06:30 PM',
+      endTime: '11:30 PM',
+      venue: 'The Westin Grand Ballroom',
+      city: 'Pune',
+      location: 'Koregaon Park, Pune, Maharashtra',
+      totalBudget: 18000,
+      crewMembersNeeded: 4,
+      requiredRoles: ['Photographer', 'Sound Engineer', 'Event Anchor', 'Decorator'],
+      additionalRequirements: 'Evening milestone birthday party with dance floor, cake-cutting ceremony, family portrait sessions, and curated party playlist.',
+      bannerImage: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&auto=format&fit=crop&q=80',
+      status: 'Published',
+    });
+
     // 6. Create Confirmed Assignments
     console.log('[Seed] Creating Confirmed Assignments with Standby mappings...');
     const riya = createdFreelancers.find(f => f.user.name === 'Riya Deshmukh').user;

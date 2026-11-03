@@ -367,6 +367,18 @@ export const TopNav: React.FC<TopNavProps> = ({
         >
           <Menu className="w-6 h-6" />
         </button>
+        {/* Mobile Compact Icon Brand */}
+        <div
+          onClick={() => onNavigate && onNavigate('dashboard')}
+          className="lg:hidden flex items-center cursor-pointer select-none shrink-0"
+          title="CrewForge"
+        >
+          <img
+            src="/brand/crewforge-icon.png"
+            alt="CrewForge"
+            className="w-7 h-7 object-contain"
+          />
+        </div>
 
         {/* Desktop & Tablet Search Bar */}
         <div ref={searchContainerRef} className="relative flex-1 hidden sm:block max-w-[440px]">
