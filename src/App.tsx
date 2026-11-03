@@ -117,7 +117,20 @@ export const App: React.FC = () => {
             setFreelancers(liveFreelancers);
           }
           if (liveEvents && liveEvents.length > 0) {
-            setEventsList(liveEvents);
+            const merged = [...liveEvents];
+            for (const base of UPCOMING_EVENTS) {
+              const alreadyExists = merged.some(
+                e =>
+                  (e.id && e.id === base.id) ||
+                  (e._id && e._id === base.id) ||
+                  (e.name && base.name && e.name.toLowerCase() === base.name.toLowerCase()) ||
+                  (e.eventName && base.name && e.eventName.toLowerCase() === base.name.toLowerCase())
+              );
+              if (!alreadyExists) {
+                merged.push(base);
+              }
+            }
+            setEventsList(merged);
             setEventData(liveEvents[0]);
           }
           if (liveAssignments && liveAssignments.length > 0) {

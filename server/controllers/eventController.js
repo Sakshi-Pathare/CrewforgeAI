@@ -98,9 +98,19 @@ export const getEvents = async (req, res) => {
       ];
     }
 
-    const events = await Event.find(query)
+    let events = await Event.find(query)
       .populate('organizerId', 'name email phone avatar organizationName')
       .sort({ createdAt: -1 });
+
+    if (SAMPLE_EVENTS && SAMPLE_EVENTS.length > 0) {
+      const existingNames = new Set(events.map(e => (e.eventName || e.name || '').toLowerCase()));
+      for (const sample of SAMPLE_EVENTS) {
+        const sName = (sample.eventName || sample.name || '').toLowerCase();
+        if (!existingNames.has(sName)) {
+          events.push(sample);
+        }
+      }
+    }
 
     return res.status(200).json({
       success: true,
@@ -124,9 +134,19 @@ export const getMyEvents = async (req, res) => {
       ? { organizerId: req.query.organizerId }
       : { organizerId: req.user._id };
 
-    const events = await Event.find(query)
+    let events = await Event.find(query)
       .populate('organizerId', 'name email phone avatar organizationName')
       .sort({ createdAt: -1 });
+
+    if (SAMPLE_EVENTS && SAMPLE_EVENTS.length > 0) {
+      const existingNames = new Set(events.map(e => (e.eventName || e.name || '').toLowerCase()));
+      for (const sample of SAMPLE_EVENTS) {
+        const sName = (sample.eventName || sample.name || '').toLowerCase();
+        if (!existingNames.has(sName)) {
+          events.push(sample);
+        }
+      }
+    }
 
     return res.status(200).json({
       success: true,
